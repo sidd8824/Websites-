@@ -1,0 +1,37 @@
+.vstack-stage{touch-action:pan-y}
+.vstack-stage canvas{display:block;width:100%;height:100%}
+.vstack .ic{display:inline-block;vertical-align:middle}
+.vstack .ic svg{width:42px;height:28px;overflow:visible}
+.vstack .ic .bar{transform-box:fill-box;transform-origin:bottom;animation:vs-bar 1.2s ease-in-out infinite}
+@keyframes vs-bar{0%,100%{transform:scaleY(.35)}50%{transform:scaleY(1)}}
+.vstack .ic .spin{transform-box:fill-box;transform-origin:center;animation:vs-spin 3s linear infinite}
+.vstack .ic .spin.r{animation-direction:reverse}
+@keyframes vs-spin{to{transform:rotate(360deg)}}
+.vstack .ic .hand{transform-box:view-box;transform-origin:20px 14px;animation:vs-spin 2s linear infinite}
+.vstack .ic .dot{animation:vs-dot 1.2s ease-in-out infinite}
+@keyframes vs-dot{0%,100%{opacity:.25}50%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.vstack .ic *{animation:none!important}}
+
+.vstack .dos{position:absolute;right:16px;top:50%;width:min(340px,92%);box-sizing:border-box;padding:20px;border-radius:20px;background:rgba(20,17,44,.78);border:1px solid var(--c);box-shadow:0 0 36px -8px var(--c);backdrop-filter:blur(12px);opacity:0;pointer-events:none;transform:translate(30px,-50%);transition:opacity .35s,transform .35s;color:#E6EDF7;z-index:5}
+.vstack .dos.open{opacity:1;pointer-events:auto;transform:translate(0,-50%)}
+.vstack .dos .x{position:absolute;right:10px;top:8px;background:none;border:0;color:#A7A3C7;font-size:24px;cursor:pointer}
+.vstack .dos .chip{display:inline-block;font:500 10px 'Fira Code',monospace;letter-spacing:.1em;padding:3px 10px;border-radius:99px;background:var(--c);color:#0B0A16}
+.vstack .dos .ic{color:var(--c);margin-left:8px}
+.vstack .dos h2{margin:10px 0 2px;font:800 38px 'Bricolage Grotesque',sans-serif;color:var(--c)}
+.vstack .dos .tag{margin:0;font:500 12px 'Fira Code',monospace;color:#67E8F9}
+.vstack .dos .how{margin:8px 0 0;font:500 12px 'Fira Code',monospace;color:#67E8F9}
+.vstack .dos .desc{font-size:14px;line-height:1.5;color:rgba(230,237,247,.88)}
+.vstack .dos ul{margin:12px 0;padding:0;list-style:none;font-size:13px;line-height:1.4;color:rgba(230,237,247,.85)}
+.vstack .dos li{padding-left:18px;position:relative;margin-bottom:8px}
+.vstack .dos li:before{content:'';position:absolute;left:2px;top:6px;width:7px;height:7px;border-radius:50%;background:var(--c)}
+.vstack .dos.open li{animation:vs-rise .4s both}
+.vstack .dos li:nth-child(2){animation-delay:.08s}.vstack .dos li:nth-child(3){animation-delay:.16s}
+@keyframes vs-rise{from{opacity:0;transform:translateY(8px)}}
+.vstack .dos .act{display:flex;gap:8px}
+.vstack .dos .act button{font:800 13px 'Bricolage Grotesque',sans-serif;border:0;border-radius:99px;padding:10px 14px;cursor:pointer;color:#E6EDF7;background:rgba(255,255,255,.1)}
+.vstack .dos .act .join{flex:1;background:var(--c);color:#0B0A16}
+.vstack .dos button:focus-visible{outline:2px solid #67E8F9}
+@media (prefers-reduced-motion:reduce){.vstack .dos li{animation:none!important}}
+@media (max-width:720px){.vstack .dos{left:8px;right:8px;width:auto;top:auto;bottom:8px;max-height:46%;overflow:auto;transform:translateY(30px)}.vstack .dos.open{transform:none}.vstack .dos h2{font-size:30px}}
+@media (max-width:420px){.vstack .dos{padding:14px;border-radius:16px}.vstack .dos h2{font-size:26px;margin-top:8px}.vstack .dos .desc{font-size:13px;margin:6px 0}.vstack .dos ul{margin:8px 0;font-size:12px}.vstack .dos li{margin-bottom:6px}.vstack .dos .act button{padding:9px 12px}}
+@media (max-height:520px) and (min-width:721px){.vstack .dos{max-height:90%;overflow:auto}}

@@ -1,0 +1,551 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: 'Bricolage Grotesque', 'Archivo Black', -apple-system, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --color-ink: #0B0A16;
+  --color-paper: #F3F4F8;
+  --color-highlighter: #67E8F9;
+  --color-valgo: #8B5CF6;
+  --color-vunit: #1D9E75;
+  --color-vhack: #D85A30;
+  --color-vdev: #378ADD;
+}
+
+/* Base resets & typography */
+html {
+  font-family: var(--font-body);
+  background-color: #07060F;
+  color: #E9EAF2;
+}
+
+/* Lenis handles smooth scrolling; native smooth-scroll would fight it. */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: hidden; }
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-display);
+}
+
+code, pre, .font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Custom stepped 3D text shadow for the hero & footer wordmark */
+.wordmark-extrusion {
+  color: #F6EEDB;
+  text-shadow:
+    1px 1px 0 #E3C46E,
+    2px 2px 0 #E3C46E,
+    3px 3px 0 #E3C46E,
+    4px 4px 0 #D39A4A,
+    5px 5px 0 #D39A4A,
+    6px 6px 0 #D39A4A,
+    7px 7px 0 #B5583F,
+    8px 8px 0 #B5583F,
+    9px 9px 0 #B5583F,
+    10px 10px 0 #4F2218,
+    11px 11px 0 #4F2218,
+    12px 12px 16px rgba(5, 3, 8, 0.9);
+  -webkit-text-stroke: 1.5px rgba(40, 14, 10, 0.85);
+}
+
+.wordmark-extrusion-sm {
+  color: #E6EDF7;
+  text-shadow:
+    1px 1px 0 #8B5CF6,
+    2px 2px 0 #6D28D9,
+    3px 3px 0 #4C1D95,
+    4px 4px 6px rgba(5, 7, 13, 0.9);
+}
+
+/* Hand-drawn doodle wobble filter effect */
+.wobble-doodle {
+  filter: url('#doodle-filter');
+}
+
+@keyframes gentle-wobble {
+  0%, 100% {
+    transform: rotate(0deg) scale(1);
+  }
+  25% {
+    transform: rotate(-0.75deg) scale(1.01);
+  }
+  75% {
+    transform: rotate(0.75deg) scale(0.99);
+  }
+}
+
+.animate-wobble-subtle {
+  animation: gentle-wobble 4s ease-in-out infinite;
+}
+
+/* ------------------------------------------------------------------
+   GLASS + GLOW  (the one card style used for every box on the site)
+   - frosted translucent fill so the space background shows through
+   - bright top-edge highlight + hairline border = "glass edge"
+   - soft coloured glow driven by --glow (an "r g b" triplet)
+   Accent a card with .glow-violet / -green / -coral / -blue / -cyan.
+   NOTE: these rules are unlayered on purpose so they beat Tailwind's
+   border/shadow utilities that older markup still carries.
+   ------------------------------------------------------------------ */
+.glass,
+.paper-surface {
+  --glow: 139 92 246;
+  color: #E9EAF2;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.13) 0%, rgba(255, 255, 255, 0.04) 42%, rgba(255, 255, 255, 0.07) 100%),
+    radial-gradient(120% 90% at 0% 0%, rgb(var(--glow) / 0.16) 0%, transparent 60%),
+    rgba(8, 6, 24, 0.58);
+  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+  backdrop-filter: blur(18px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.04),
+    inset 0 0 28px rgb(var(--glow) / 0.08),
+    0 14px 40px -12px rgba(0, 0, 0, 0.6),
+    0 0 34px -6px rgb(var(--glow) / 0.32);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease, background-color 0.3s ease, transform 0.3s ease;
+}
+.glass:hover,
+.paper-surface:hover {
+  border-color: rgb(var(--glow) / 0.6);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 0 34px rgb(var(--glow) / 0.14),
+    0 18px 46px -12px rgba(0, 0, 0, 0.65),
+    0 0 52px -4px rgb(var(--glow) / 0.55);
+}
+
+/* Variant for 3D-flipping cards: backdrop-filter would flatten preserve-3d,
+   so this one fakes the frost with a slightly denser fill instead. */
+.glass-flat {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.05) 45%, rgba(255, 255, 255, 0.08) 100%),
+    radial-gradient(120% 90% at 0% 0%, rgb(var(--glow) / 0.2) 0%, transparent 60%),
+    rgba(24, 19, 62, 0.82);
+}
+
+/* Smaller glass pieces that sit INSIDE a glass card: wells, inputs, chips. */
+.glass-inset {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #E9EAF2;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.glass-inset::placeholder { color: rgba(167, 163, 199, 0.7); }
+.glass-inset:focus {
+  outline: none;
+  border-color: rgb(var(--glow, 103 232 249) / 0.8);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.35), 0 0 0 3px rgb(var(--glow, 103 232 249) / 0.22), 0 0 18px rgb(var(--glow, 103 232 249) / 0.35);
+}
+.glass-chip {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #E9EAF2;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 0 14px -2px rgb(var(--glow, 103 232 249) / 0.35);
+}
+
+.glow-violet { --glow: 139 92 246; }
+.glow-green  { --glow: 29 158 117; }
+.glow-coral  { --glow: 232 87 42; }
+.glow-blue   { --glow: 55 138 221; }
+.glow-cyan   { --glow: 103 232 249; }
+
+/* Native dropdown lists need an explicit dark surface or they render white-on-white. */
+select.glass-inset option { background: #14102E; color: #E9EAF2; }
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass, .paper-surface { -webkit-backdrop-filter: none; backdrop-filter: none; background-color: rgba(24, 19, 62, 0.92); }
+}
+
+/* Perforation styling for the Event Hero ticket */
+.ticket-notch-left {
+  position: absolute;
+  left: -12px;
+  width: 24px;
+  height: 24px;
+  background-color: #06050E;
+  border-radius: 9999px;
+  box-shadow: inset -2px 0 3px rgba(0, 0, 0, 0.4);
+}
+
+.ticket-notch-right {
+  position: absolute;
+  right: -12px;
+  width: 24px;
+  height: 24px;
+  background-color: #06050E;
+  border-radius: 9999px;
+  box-shadow: inset 2px 0 3px rgba(0, 0, 0, 0.4);
+}
+
+.ticket-perforation {
+  background-image: linear-gradient(to bottom, #1E1B4B 45%, transparent 45%, transparent 100%);
+  background-size: 2px 14px;
+  background-repeat: repeat-y;
+}
+
+/* 3D Trading Card Flip mechanics */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.transform-style-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+/* Custom scrollbar for horizontal card deck */
+.custom-scrollbar::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(139,92,246, 0.38);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(103,232,249, 0.72);
+}
+
+/* Dot grid background texture for projects section */
+.bg-dot-grid {
+  background-image: radial-gradient(rgba(230, 237, 247, 0.12) 1.5px, transparent 1.5px);
+  background-size: 24px 24px;
+}
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Event Schedule Animations & 3D Flip */
+@keyframes flip-digit {
+  0% {
+    transform: perspective(400px) rotateX(90deg);
+    opacity: 0.15;
+  }
+  65% {
+    transform: perspective(400px) rotateX(-10deg);
+    opacity: 1;
+  }
+  100% {
+    transform: perspective(400px) rotateX(0deg);
+    opacity: 1;
+  }
+}
+
+.animate-flip-digit {
+  animation: flip-digit 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes rocket-bob {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(4deg);
+  }
+}
+
+.animate-rocket-bob {
+  animation: rocket-bob 3.6s ease-in-out infinite;
+}
+
+@keyframes ticket-sway {
+  0%, 100% {
+    transform: rotate(0deg) translateY(0);
+  }
+  50% {
+    transform: rotate(1.4deg) translateY(-4px);
+  }
+}
+
+.animate-ticket-sway {
+  animation: ticket-sway 4.5s ease-in-out infinite;
+}
+
+@keyframes clock-minute-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(720deg);
+  }
+}
+
+.animate-clock-spin {
+  transform-origin: 10px 10px;
+  animation: clock-minute-spin 1s linear infinite;
+}
+
+@keyframes sparkle-twinkle {
+  0%, 100% {
+    transform: scale(0.6) rotate(0deg);
+    opacity: 0.35;
+  }
+  50% {
+    transform: scale(1.3) rotate(45deg);
+    opacity: 1;
+  }
+}
+
+.animate-sparkle {
+  animation: sparkle-twinkle 2.4s ease-in-out infinite;
+}
+
+@keyframes btn-wobble {
+  0%, 100% {
+    transform: scale(1.04) rotate(0deg);
+  }
+  25% {
+    transform: scale(1.05) rotate(-2deg);
+  }
+  75% {
+    transform: scale(1.05) rotate(2deg);
+  }
+}
+
+.hover-wobble:hover {
+  animation: btn-wobble 0.35s ease-in-out infinite;
+}
+
+
+
+/* Hero stage */
+.hero-gradient-stage {
+  /* No position here (it would override Tailwind's sticky). Transparent: the dark base shows through. */
+  background: none;
+}
+
+/* Reusable section atmosphere: sections keep their own identity without breaking the palette. */
+.section-electric-glow {
+  background-image: radial-gradient(ellipse at 85% 15%, rgba(139,92,246, 0.12), transparent 38%),
+    radial-gradient(ellipse at 8% 88%, rgba(103,232,249, 0.07), transparent 34%);
+}
+.section-graphite { background-color: #0B0A16; color: #E9EAF2; }
+.section-slate { background-color: #1C1840; color: #E9EAF2; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-wobble-subtle, .animate-rocket-bob { animation: none !important; }
+}
+
+/* ---- glass add-ons ---- */
+.glass-flat { transition: transform 0.7s ease, box-shadow 0.3s ease, border-color 0.3s ease; }
+/* Strongly tinted glass (used for the coloured vertical tiles) */
+.glass-tint {
+  background:
+    linear-gradient(145deg, rgb(var(--glow) / 0.5) 0%, rgb(var(--glow) / 0.14) 100%),
+    rgba(20, 16, 52, 0.45);
+}
+.glass-dashed, .glass-dashed:hover { border-style: dashed; border-width: 2px; border-color: rgb(var(--glow) / 0.8); }
+.glass-chip:hover { background: rgba(255, 255, 255, 0.17); }
+.glass, .paper-surface { transition: box-shadow 0.3s ease, border-color 0.3s ease, background-color 0.3s ease, transform 0.3s ease, scale 0.3s ease, rotate 0.3s ease, translate 0.3s ease; }
+.glass.glass-flat { transition: transform 0.7s ease, box-shadow 0.3s ease, border-color 0.3s ease; }
+
+/* ------------------------------------------------------------------
+   CONTRAST LAYER for the bright sections (About = red, Events = blue).
+   The original text colours were chosen for a near-black page. On a bold
+   colour they fall below 3:1, so:
+     - text sitting directly on the colour is forced to white
+     - text inside glass cards keeps its colour but is lifted to a readable tint
+   (Team is untouched: its text lives on its own light panel.)
+   ------------------------------------------------------------------ */
+#about [class*="text-[#A7A3C7]"]:not([class*="/40"]),
+#events [class*="text-[#A7A3C7]"]:not([class*="/40"]),
+#about [class*="text-[#E6EDF7]"],
+#events [class*="text-[#E6EDF7]"],
+#about [class*="text-[#E8572A]"], #events [class*="text-[#E8572A]"],
+#about [class*="text-[#D85A30]"], #events [class*="text-[#D85A30]"],
+#about [class*="text-[#F0997B]"], #about [class*="text-[#FF8F63]"],
+#about [class*="text-[#A78BFA]"], #about [class*="text-[#5DCAA5]"],
+#about [class*="text-[#85B7EB]"], #about [class*="text-[#63B0FF]"],
+#about [class*="text-[#3DDBA6]"], #about [class*="text-[#67E8F9]"],
+#events [class*="text-[#67E8F9]"], #events [class*="text-[#1D9E75]"],
+#events [class*="text-[#378ADD]"] {
+  color: #FFFFFF;
+}
+
+/* Inside a card: dark glass, so lighter tints read well (all >= 4.5:1). */
+#about :is(.glass, .paper-surface, .glass-flat, .glass-tint) [class*="text-[#A7A3C7]"]:not([class*="/40"]),
+#events :is(.glass, .paper-surface, .glass-flat, .glass-tint) [class*="text-[#A7A3C7]"]:not([class*="/40"]) { color: #D4D0EC; }
+#about :is(.glass, .paper-surface, .glass-flat, .glass-tint) :is([class*="text-[#E8572A]"], [class*="text-[#D85A30]"], [class*="text-[#F0997B]"], [class*="text-[#FF8F63]"]),
+#events :is(.glass, .paper-surface, .glass-flat, .glass-tint) :is([class*="text-[#E8572A]"], [class*="text-[#D85A30]"]) { color: #FFA27C; }
+#about :is(.glass, .paper-surface, .glass-flat, .glass-tint) [class*="text-[#67E8F9]"],
+#events :is(.glass, .paper-surface, .glass-flat, .glass-tint) [class*="text-[#67E8F9]"] { color: #67E8F9; }
+#about :is(.glass, .paper-surface, .glass-flat, .glass-tint) [class*="text-[#E6EDF7]"],
+#events :is(.glass, .paper-surface, .glass-flat, .glass-tint) [class*="text-[#E6EDF7]"] { color: #F3F6FC; }
+
+/* The card glass itself: a little denser on bright sections so text never sits on a bright bleed-through. */
+#about .glass, #about .paper-surface, #events .glass, #events .paper-surface {
+  background:
+    linear-gradient(145deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.03) 45%, rgba(255,255,255,0.05) 100%),
+    radial-gradient(120% 90% at 0% 0%, rgb(var(--glow) / 0.14) 0%, transparent 60%),
+    rgba(8, 6, 24, 0.72);
+}
+
+
+/* ------------------------------------------------------------------
+   EVENT CARDS: staggered drop-in, tilt, straighten-on-hover, and a light that
+   sweeps around the border on hover.
+   ------------------------------------------------------------------ */
+@property --ang { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+
+.ev-card {
+  position: relative;
+  transform: rotate(var(--tilt, 0deg));
+  transition: transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.ev-card:hover {
+  transform: rotate(0deg) translateY(-10px) scale(1.02);
+  z-index: 10;
+}
+.ev-card.ev-hidden { opacity: 0; }
+.ev-card.ev-show {
+  animation: ev-in 0.95s cubic-bezier(0.2, 0.9, 0.25, 1.12) var(--delay, 0s) backwards;
+}
+@keyframes ev-in {
+  from {
+    opacity: 0;
+    transform: translate(var(--fx, 0px), 80px) rotate(calc(var(--tilt, 0deg) * 4)) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(var(--tilt, 0deg));
+  }
+}
+
+/* the featured card breathes very slightly, so the page feels alive at rest */
+.ev-card.ev-float.ev-show { animation: ev-in 0.95s cubic-bezier(0.2, 0.9, 0.25, 1.12) var(--delay, 0s) backwards, ev-bob 7s ease-in-out 1.4s infinite; }
+.ev-card.ev-float:hover { animation: none; }
+@keyframes ev-bob {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -6px; }
+}
+
+/* sweeping border light */
+.ev-card::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(from var(--ang), transparent 0 62%, rgb(var(--glow) / 0.95) 82%, transparent 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+.ev-card:hover::before { opacity: 1; animation: ev-spin 2.4s linear infinite; }
+@keyframes ev-spin { to { --ang: 360deg; } }
+
+/* completed missions: the check circle pops when the card is hovered */
+.ev-card-done:hover .ev-check { animation: ev-pop 0.5s ease; }
+@keyframes ev-pop { 0% { transform: scale(1); } 40% { transform: scale(1.35) rotate(-8deg); } 100% { transform: scale(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ev-card, .ev-card.ev-show, .ev-card.ev-float.ev-show { animation: none !important; }
+  .ev-card.ev-hidden { opacity: 1; }
+}
+
+
+/* ---- Events: hourglass, tear, last-hour mode ---- */
+@keyframes hg-stream { to { stroke-dashoffset: -14; } }
+.hg-stream { stroke-dasharray: 3 4; animation: hg-stream 0.4s linear infinite; }
+
+@keyframes urgent-blink { 50% { opacity: 0.35; } }
+.animate-urgent-blink { animation: urgent-blink 1s steps(1) infinite; }
+
+@keyframes urgent-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(232, 87, 42, 0.6), 0 0 24px rgba(232, 87, 42, 0.35); }
+  50% { box-shadow: 0 0 0 2px rgba(232, 87, 42, 1), 0 0 56px rgba(232, 87, 42, 0.7); }
+}
+@keyframes urgent-shake {
+  0%, 84%, 100% { transform: translate(0, 0) rotate(0); }
+  86% { transform: translate(-2px, 1px) rotate(-0.25deg); }
+  88% { transform: translate(2px, -1px) rotate(0.25deg); }
+  90% { transform: translate(-2px, 0) rotate(-0.2deg); }
+  92% { transform: translate(2px, 1px) rotate(0.2deg); }
+  94% { transform: translate(-1px, 0) rotate(0); }
+}
+.ticket-urgent { animation: urgent-pulse 1.6s ease-in-out infinite, urgent-shake 2.4s ease-in-out infinite; }
+
+@keyframes stub-rip {
+  0% { transform: none; }
+  16% { transform: rotate(-3deg) translateX(-3px); }
+  30% { transform: rotate(2deg) translateX(2px); }
+  100% { transform: rotate(9deg) translate(8px, 16px) scale(0.97); }
+}
+.stub-torn {
+  animation: stub-rip 0.75s cubic-bezier(0.3, 1.4, 0.5, 1) forwards;
+  border: 2px dashed #E8572A;
+  border-radius: 1rem;
+}
+
+@keyframes qr-out {
+  0% { transform: translateY(-46px) scale(0.8); opacity: 0; }
+  60% { transform: translateY(8px) rotate(-5deg); opacity: 1; }
+  100% { transform: translateY(0) rotate(-3deg) scale(1.06); opacity: 1; }
+}
+.qr-slide { animation: qr-out 0.7s 0.15s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+/* ragged paper edges where the stub was torn off (desktop layout only) */
+@media (min-width: 1024px) {
+  .stub-torn {
+    border-left: none;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 2% 95%, 0 90%, 2% 85%, 0 80%, 2% 75%, 0 70%, 2% 65%, 0 60%, 2% 55%, 0 50%, 2% 45%, 0 40%, 2% 35%, 0 30%, 2% 25%, 0 20%, 2% 15%, 0 10%, 2% 5%);
+  }
+  .main-torn {
+    border-right: none;
+    clip-path: polygon(0 0, 100% 0, 99% 5%, 100% 10%, 99% 15%, 100% 20%, 99% 25%, 100% 30%, 99% 35%, 100% 40%, 99% 45%, 100% 50%, 99% 55%, 100% 60%, 99% 65%, 100% 70%, 99% 75%, 100% 80%, 99% 85%, 100% 90%, 99% 95%, 100% 100%, 0 100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticket-urgent, .animate-urgent-blink, .hg-stream, .stub-torn, .qr-slide { animation: none !important; }
+  .stub-torn { transform: rotate(5deg) translateY(8px); }
+}
+
+
+/* Hero terminal wordmark cursor */
+@keyframes term-blink { 50% { opacity: 0; } }
+.term-cursor { animation: term-blink 1s steps(1) infinite; }
+@media (prefers-reduced-motion: reduce) { .term-cursor { animation: none; } }
+
+
+/* ---- Flight calendar (Events) ---- */
+@keyframes fc-dash { to { stroke-dashoffset: -44; } }
+@keyframes fc-blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@keyframes fc-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.18); } }
+.fc-dash { animation: fc-dash 1.4s linear infinite; }
+.fc-blink { animation: fc-blink 1s steps(1) infinite; }
+.fc-pulse { animation: fc-pulse 1.8s ease-in-out infinite; }
+.fc-click { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.fc-click:hover { transform: translateY(-2px) scale(1.05); box-shadow: 0 0 22px var(--fc, rgba(103, 232, 249, 0.5)); z-index: 2; }
+@media (prefers-reduced-motion: reduce) { .fc-dash, .fc-blink, .fc-pulse { animation: none; } }
