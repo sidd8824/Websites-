@@ -1,12 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Lenis from 'lenis';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { registerLenis, scrollToY, scrollToElement, docTop } from './utils/scroll';
 import GlobalDoodleFilter from './components/GlobalDoodleFilter';
-import ProjectsReveal from './components/ProjectsReveal';
 import FlyThroughPage from './components/FlyThroughPage';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import FixedBackground from './components/FixedBackground';
 import CustomCursor from './components/CustomCursor';
 import Navbar from './components/Navbar';
@@ -22,44 +21,34 @@ import FooterSection from './components/FooterSection';
 
 gsap.registerPlugin(ScrollTrigger);
 
-function HomePage({ scrollProgress }: { scrollProgress: number }) {
-  const handleNavigate = (sectionId: string) => {
-    if (sectionId === 'home') {
-      scrollToY(0);
-      return;
-    }
-
-    const el = document.getElementById(sectionId);
-    if (el) scrollToElement(el);
-  };
-
+function HomePage({ onNavigate }: { onNavigate: (sectionId: string) => void }) {
   return (
     <main className="relative z-10 w-full overflow-x-clip">
-      {/* 1. Hero Section (terminal wordmark intro) */}
-      <HeroSection onNavigate={handleNavigate} />
-
-      {/* 2. About (Anti-design collage & flickering counters) */}
+      <HeroSection onNavigate={onNavigate} />
       <AboutSection />
-
-      {/* 3. Verticals (3D Layer Stack & Dossiers) */}
-      <VerticalsSection onNavigate={handleNavigate} />
-
-      {/* 4. Transition: three boxes -> middle one expands while the letters of PROJECTS assemble */}
-      <ProjectsReveal />
-
-      {/* 4b. Projects (Winding polaroid road & tech stickers) */}
-      <ProjectsSection scrollProgress={scrollProgress} />
-
-      {/* 5. Events (Hero paper ticket & countdown) */}
-      <EventsSection onNavigate={handleNavigate} />
-
-      {/* 6. Team ("THE CREW!" trading-card deck with 3D flip) */}
-      <TeamSection />
-
-      {/* 7. Join us (5th slot 3D stack & playful form) */}
+      <VerticalsSection onNavigate={onNavigate} />
+      <EventsSection onNavigate={onNavigate} />
       <JoinSection />
+      <FooterSection />
+    </main>
+  );
+}
 
-      {/* 8. Site Footer with Extruded Wordmark */}
+function ProjectsPage() {
+  return (
+    <main className="relative z-10 w-full overflow-x-clip">
+      <ProjectsSection scrollProgress={0} />
+      <FooterSection />
+    </main>
+  );
+}
+
+function CrewPage() {
+  return (
+    <main className="relative z-10 w-full overflow-x-clip">
+      <div className="min-h-screen pt-20">
+        <TeamSection />
+      </div>
       <FooterSection />
     </main>
   );
@@ -68,8 +57,9 @@ function HomePage({ scrollProgress }: { scrollProgress: number }) {
 function SiteApp() {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [activeSection, setActiveSection] = useState('home');
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  // Initialize Lenis smooth scroll
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) return;
@@ -81,9 +71,6 @@ function SiteApp() {
       smoothWheel: true,
     });
     registerLenis(lenis);
-
-    // Drive Lenis from GSAP's ticker and tell ScrollTrigger about every Lenis
-    // scroll, so scrubbed animations never drift out of sync.
     lenis.on('scroll', ScrollTrigger.update);
     const tick = (time: number) => lenis.raf(time * 1000);
     gsap.ticker.add(tick);
@@ -96,73 +83,85 @@ function SiteApp() {
     };
   }, []);
 
-  // Track overall scroll progress & active sections
   useEffect(() => {
+    if (location.pathname === '/projects') {
+      setActiveSection('projects');
+      return;
+    }
+    if (location.pathname === '/team') {
+      setActiveSection('team');
+      return;
+    }
+    setActiveSection('home');
     const handleScroll = () => {
       const scrollY = window.scrollY;
       const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-      const progress = docHeight > 0 ? Math.min(1, Math.max(0, scrollY / docHeight)) : 0;
-      setScrollProgress(progress);
-
-      // Other sections
-      const sections = ['home', 'about', 'verticals', 'projects', 'events', 'team', 'join'];
+      setScrollProgress(docHeight > 0 ? Math.min(1, Math.max(0, scrollY / docHeight)) : 0);
+      const sections = ['home', 'about', 'verticals', 'events', 'join'];
       const currentScroll = scrollY + window.innerHeight * 0.35;
-
       for (const id of sections) {
         const el = document.getElementById(id);
         if (el) {
           const top = docTop(el);
-          const height = el.offsetHeight;
-          if (currentScroll >= top && currentScroll < top + height) {
+          if (currentScroll >= top && currentScroll < top + el.offsetHeight) {
             setActiveSection(id);
             break;
           }
         }
       }
     };
-
     window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll();
-
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [location.pathname]);
 
   const handleNavbarNavigate = (sectionId: string) => {
+    if (sectionId === 'projects') {
+      navigate('/projects');
+      scrollToY(0);
+      return;
+    }
+    if (sectionId === 'team') {
+      navigate('/team');
+      scrollToY(0);
+      return;
+    }
+    if (location.pathname !== '/') {
+      navigate('/');
+      window.setTimeout(() => {
+        if (sectionId === 'home') scrollToY(0);
+        else {
+          const el = document.getElementById(sectionId);
+          if (el) scrollToElement(el);
+        }
+      }, 80);
+      return;
+    }
     if (sectionId === 'home') {
       scrollToY(0);
       return;
     }
-
     const el = document.getElementById(sectionId);
     if (el) scrollToElement(el);
   };
 
   return (
     <div className="relative min-h-screen w-full bg-transparent text-[#E6EDF7] font-body selection:bg-[#67E8F9] selection:text-[#0B0A16]">
-      {/* Hidden Global SVG Filters for Organic Hand-Drawn Wobble */}
       <GlobalDoodleFilter />
-
-      {/* ONE Fixed Full-Screen Background Layer interpolating smoothly across sections */}
       <FixedBackground />
-
-      {/* Custom Context-Aware Desktop Cursor */}
       <CustomCursor />
-
-      {/* The ONE hanging mascot for the Projects transition + reel */}
       <StageMascot />
-
-      {/* Top Navbar */}
-      <Navbar
-        activeSection={activeSection}
-        onNavigate={handleNavbarNavigate}
-      />
-
-      <HomePage scrollProgress={scrollProgress} />
+      <Navbar activeSection={activeSection} onNavigate={handleNavbarNavigate} />
+      <Routes>
+        <Route path="/" element={<HomePage onNavigate={handleNavbarNavigate} />} />
+        <Route path="/projects" element={<ProjectsPage />} />
+        <Route path="/team" element={<CrewPage />} />
+        <Route path="*" element={<HomePage onNavigate={handleNavbarNavigate} />} />
+      </Routes>
     </div>
   );
 }
 
-// The main site lives at "/", the fly-through scene at "/flythrough".
 export default function App() {
   return (
     <Routes>
