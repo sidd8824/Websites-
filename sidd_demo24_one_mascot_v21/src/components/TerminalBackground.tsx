@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 //  - rows of fake prompts and boot logs drift upward, with a blinking block cursor on the last row
 //  - random characters glitch in and fade out
 //  - the pointer "heats" nearby characters; a click tears a horizontal band open
-// It draws on a transparent canvas, so the colour-drifting backdrop (SectionStage) shows through.
+// FixedBackground supplies the near-black base; this draws the text, scanlines and vignette on top.
 // Everything lives in CFG below: change the colours, text and speeds there.
 
 const CFG = {
@@ -202,10 +202,13 @@ export default function TerminalBackground() {
   return (
     <>
       <canvas ref={ref} className="absolute inset-0 w-full h-full" aria-hidden="true" />
-      {/* CRT scanlines */}
+      {/* CRT scanlines + vignette */}
       <div
         className="absolute inset-0"
-        style={{ background: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.14) 0 1px, transparent 1px 3px)' }}
+        style={{
+          background:
+            'repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0 1px, transparent 1px 3px), radial-gradient(ellipse at center, rgba(5,8,5,0.65) 0%, transparent 55%, rgba(0,0,0,0.7) 100%)',
+        }}
       />
     </>
   );
