@@ -408,9 +408,12 @@ function init(container: HTMLElement, api: any, onFocusChange?: (focused: boolea
      if(!drag){rotY+=vel*dt+(reduce?0:(sel?.05:.12)*dt);vel*=.94;rotX*=.92}
      stack.rotation.y=rotY;stack.rotation.x=rotX;
      const k=reduce?1:.07,sb=sel?bands[idx(sel)]:null;
-     const focusTargetY=sb?sb.y-(narrow?2.2:0):ly;
-     const zoomTarget=sb?Math.max(narrow?16:11.5,fittedFocusDistance(focusTargetY)*1.06):bz;
-     cz+=(zoomTarget-cz)*k;cy+=((sb?sb.y+1.1:by)-cy)*k;
+     const focusFrame=sb?fittedFocusDistance():null;
+     const focusTargetY=sb?focusFrame.centerY:ly;
+     const zoomTarget=sb?Math.max(narrow?10:8.5,focusFrame.distance*1.015):bz;
+     const targetFov=sb?55:38;
+     cam.fov+=(targetFov-cam.fov)*k;cam.updateProjectionMatrix();
+     cz+=(zoomTarget-cz)*k;cy+=((sb?focusFrame.centerY+1.1:by)-cy)*k;
      cly+=(focusTargetY-cly)*k;
      cox+=((sb&&!narrow?2.4:0)-cox)*k;cam.position.set(cox+(reduce?0:px*.9),cy-(reduce?0:py*.5),cz);cam.lookAt(cox,cly,0);
      const foc=sel||hov,hi=bands.findIndex((x)=>x.v.id===foc),gap=sel?.7:.32;
