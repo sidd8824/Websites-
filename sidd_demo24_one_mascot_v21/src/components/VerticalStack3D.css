@@ -35,3 +35,43 @@
 @media (max-width:720px){.vstack .dos{left:8px;right:8px;width:auto;top:auto;bottom:8px;max-height:46%;overflow:auto;transform:translateY(30px)}.vstack .dos.open{transform:none}.vstack .dos h2{font-size:30px}}
 @media (max-width:420px){.vstack .dos{padding:14px;border-radius:16px}.vstack .dos h2{font-size:26px;margin-top:8px}.vstack .dos .desc{font-size:13px;margin:6px 0}.vstack .dos ul{margin:8px 0;font-size:12px}.vstack .dos li{margin-bottom:6px}.vstack .dos .act button{padding:9px 12px}}
 @media (max-height:520px) and (min-width:721px){.vstack .dos{max-height:90%;overflow:auto}}
+
+
+/* Focus mode: let the original Three.js tower use the viewport instead of a clipped card-sized stage. */
+.vstack.focus-mode{
+  position:fixed;inset:0;width:100vw;height:100dvh;max-height:100dvh;z-index:80;
+  border-radius:0;overflow:visible;background:rgba(3,4,10,.96);
+  transition:height .6s ease-in-out,width .6s ease-in-out;
+}
+.vstack.focus-mode .vstack-stage{width:100%;height:100%;touch-action:none}
+.vstack.focus-mode .dos{
+  top:50%;right:clamp(14px,3vw,42px);left:auto;bottom:auto;
+  width:min(340px,31vw);max-height:calc(100dvh - 112px);overflow-y:auto;
+  transform:translate(24px,-44%);transition:opacity .6s ease-in-out,transform .6s ease-in-out;
+}
+.vstack.focus-mode .dos.open{transform:translate(0,-44%)}
+.vstack.focus-mode .focus-pills{
+  position:absolute;z-index:9;top:clamp(12px,2.5vh,28px);left:50%;transform:translateX(-50%);
+  display:flex;gap:8px;max-width:calc(100vw - 24px);flex-wrap:wrap;justify-content:center;
+}
+.vstack .focus-pills button{
+  border:1px solid color-mix(in srgb,var(--c) 65%,transparent);border-radius:999px;
+  padding:8px 13px;background:rgba(8,8,20,.88);color:#e6edf7;
+  font:700 11px 'Fira Code',monospace;letter-spacing:.02em;cursor:pointer;
+  transition:background .25s,border-color .25s,transform .25s,box-shadow .25s;
+}
+.vstack .focus-pills button.active{background:var(--c);color:#080812;box-shadow:0 0 20px color-mix(in srgb,var(--c) 55%,transparent)}
+.vstack .focus-pills button:hover{transform:translateY(-2px)}
+@media(max-width:720px){
+ .vstack.focus-mode .dos{
+   left:12px;right:12px;top:auto;bottom:12px;width:auto;max-height:38dvh;
+   transform:translateY(18px);padding:14px 16px;
+ }
+ .vstack.focus-mode .dos.open{transform:translateY(0)}
+ .vstack.focus-mode .dos h2{font-size:26px}
+ .vstack.focus-mode .dos .desc{font-size:12px;margin:6px 0}
+ .vstack.focus-mode .dos ul{margin:7px 0;font-size:11px}
+ .vstack.focus-mode .dos li{margin-bottom:5px}
+ .vstack.focus-mode .focus-pills{top:10px;gap:5px}
+ .vstack.focus-mode .focus-pills button{padding:7px 10px;font-size:10px}
+}
