@@ -39,10 +39,11 @@
 
 
 
-/* Inline expansion: preserve the page above and below the stack. */
+
+/* Inline expansion: give the original tower more physical canvas space. */
 .vstack{position:relative;overflow:visible;transition:height .65s cubic-bezier(.22,.8,.25,1)}
 .vstack.focus-mode{
-  display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(680px,78dvh) auto;
+  display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(900px,100dvh) auto;
   position:relative;inset:auto;width:100%;height:auto;max-height:none;overflow:visible;
   border-radius:1rem;background:transparent;z-index:1;
 }
@@ -64,7 +65,7 @@
 }
 .vstack .focus-pills button.active{background:var(--c);color:#080812;box-shadow:0 0 20px color-mix(in srgb,var(--c) 55%,transparent)}
 @media(max-width:720px){
- .vstack.focus-mode{grid-template-rows:minmax(560px,68dvh) auto}
+ .vstack.focus-mode{grid-template-rows:minmax(760px,92dvh) auto}
  .vstack.focus-mode .dos{width:calc(100% - 24px);margin:18px auto 12px;padding:16px}
  .vstack.focus-mode .dos h2{font-size:28px}
  .vstack.focus-mode .focus-pills{top:8px;gap:5px}
