@@ -388,12 +388,15 @@ function init(container: HTMLElement, api: any, onFocusChange?: (focused: boolea
     on(window,'keydown',(e)=>{if(e.key==='Escape')closeSel()});
     function size(){const w=stage.clientWidth||600,h=stage.clientHeight||600;ren.setSize(w,h,false);cam.aspect=w/h;
      narrow=w/h<.9;bx=0;by=narrow?3:2.2;bz=narrow?28:18;ly=narrow?.6:.3;cam.updateProjectionMatrix()}
-    function fittedFocusDistance(targetY:number){
-     const bounds=new T.Box3().setFromObject(stack);bounds.expandByObject(ped);const dims=bounds.getSize(new T.Vector3());
-     const halfH=Math.max(Math.abs(bounds.max.y-targetY),Math.abs(bounds.min.y-targetY));
+    function fittedFocusFrame(){
+     const bounds=new T.Box3().setFromObject(stack);bounds.expandByObject(ped);
+     const dims=bounds.getSize(new T.Vector3()),center=bounds.getCenter(new T.Vector3());
      const tanV=Math.tan(T.MathUtils.degToRad(cam.fov/2)),tanH=tanV*cam.aspect;
-     const vertical=halfH/Math.max(tanV,.001),horizontal=(dims.x/2)/Math.max(tanH,.001);
-     return Math.max(vertical,horizontal)+dims.z*.5;
+     const vertical=(dims.y*.5)/Math.max(tanV,.001);
+     const horizontal=(dims.x*.5)/Math.max(tanH,.001);
+     // Fit the complete tower with a small safety margin, without adding
+     // unnecessary depth padding that makes the model look tiny.
+     return {distance:Math.max(vertical,horizontal)/.94,centerY:center.y};
     }
     const ro=new ResizeObserver(size);ro.observe(stage);size();cz=bz;cy=by;cly=ly;cam.position.set(bx,by,bz);
     const io=new IntersectionObserver((en)=>{vis=en[0].isIntersecting});io.observe(stage);
