@@ -10,6 +10,7 @@ interface VerticalStackProps {
   onSelectVertical?: (vertId: Vertical['id']) => void;
   activeVerticalId?: Vertical['id'] | null;
   onJoin?: (vertId: Vertical['id']) => void;
+  onFocusChange?: (focused: boolean) => void;
   controlRef?: { current: { select: (id: string) => void } | null };
 }
 
@@ -27,7 +28,7 @@ const ICON: Record<string,string>={
  'B/Dev':'<svg viewBox="0 0 40 28" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 22H36M12 22C16 22 14 6 20 6S24 22 28 22"/><g fill="currentColor" stroke="none"><circle class="dot" cx="4" cy="22" r="3"/><circle class="dot" style="animation-delay:.3s" cx="20" cy="6" r="3"/><circle class="dot" style="animation-delay:.6s" cx="36" cy="22" r="3"/></g></svg>'};
 const HOW: Record<string,string>={'B/Algo':'Live bubble sort: problem solving, one swap at a time','B/Uild':'Counter-turning gears and status LEDs: hardware that moves','B/Hack':'36 blocks, one per sprint hour, with a timer sweeping round','B/Dev':'A git graph: branches fork, commits pulse, branches merge'};
 
-export default function VerticalStack3D({ onJoin, controlRef }: VerticalStackProps) {
+export default function VerticalStack3D({ onJoin, onFocusChange, controlRef }: VerticalStackProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const apiRef = useRef<any>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -63,7 +64,7 @@ export default function VerticalStack3D({ onJoin, controlRef }: VerticalStackPro
       } catch (e) {}
       if (cancelled) return;
       try {
-        teardown = init(container, api);
+        teardown = init(container, api, onFocusChange);
       } catch (err) {
         console.error('VerticalStack3D failed to initialise:', err);
       }
@@ -81,7 +82,8 @@ export default function VerticalStack3D({ onJoin, controlRef }: VerticalStackPro
   const sv = V.find((x) => x.id === lastSel.current);
 
   return (
-    <div className="vstack relative w-full h-[560px] min-[400px]:h-[620px] sm:h-[700px] overflow-hidden rounded-2xl">
+    <div className={`vstack relative w-full h-[560px] min-[400px]:h-[620px] sm:h-[700px] rounded-2xl${selId ? ' focus-mode' : ''}`}>
+      {selId && <nav className="focus-pills" aria-label="Switch vertical">{V.map((item) => <button key={item.id} className={item.id === selId ? 'active' : ''} style={{ ['--c' as any]: item.c }} onClick={() => ctl() && ctl().select(item.id)}>{item.id}</button>)}</nav>}
       <div
         ref={mountRef}
         tabIndex={0}
@@ -132,7 +134,7 @@ export default function VerticalStack3D({ onJoin, controlRef }: VerticalStackPro
   );
 }
 
-function init(container: HTMLElement, api: any) {
+function init(container: HTMLElement, api: any, onFocusChange?: (focused: boolean) => void) {
     const PI=Math.PI,reduce=matchMedia('(prefers-reduced-motion: reduce)').matches,coarse=matchMedia('(pointer: coarse)').matches;
     const mulberry=(a)=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
     const rnd=mulberry(7);
@@ -364,9 +366,9 @@ function init(container: HTMLElement, api: any) {
     const setHover=(id)=>{hov=id;api.onHover(id)};
     function choose(id){
      const b=bands[idx(id)];if(!b)return;
-     sel=id;hov=id;api.onHover(id);
+     sel=id;hov=id;api.onHover(id);onFocusChange?.(true);
      b.kick=Math.PI*2*b.dir;b.flash=0;ping=0;pingBand=b;pingM.color.set(b.v.c);api.onSelect(id)}
-    function closeSel(){if(!sel)return;sel=null;api.onSelect(null)}
+    function closeSel(){if(!sel)return;sel=null;api.onSelect(null);onFocusChange?.(false)}
     const stepSel=(d)=>choose(V[(idx(sel||hov||V[0].id)+d+V.length)%V.length].id);
     api.ctrl={select:choose,close:closeSel,step:stepSel};
     function hit(e){const r=stage.getBoundingClientRect();mv.set((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1);ray.setFromCamera(mv,cam);const h=ray.intersectObjects(pick,false);return h.length?h[0].object.userData.id:null}
@@ -386,6 +388,13 @@ function init(container: HTMLElement, api: any) {
     on(window,'keydown',(e)=>{if(e.key==='Escape')closeSel()});
     function size(){const w=stage.clientWidth||600,h=stage.clientHeight||600;ren.setSize(w,h,false);cam.aspect=w/h;
      narrow=w/h<.9;bx=0;by=narrow?3:2.2;bz=narrow?28:18;ly=narrow?.6:.3;cam.updateProjectionMatrix()}
+    function fittedFocusDistance(targetY:number){
+     const bounds=new T.Box3().setFromObject(stack),dims=bounds.getSize(new T.Vector3());
+     const halfH=Math.max(Math.abs(bounds.max.y-targetY),Math.abs(bounds.min.y-targetY));
+     const tanV=Math.tan(T.MathUtils.degToRad(cam.fov/2)),tanH=tanV*cam.aspect;
+     const vertical=halfH/Math.max(tanV,.001),horizontal=(dims.x/2)/Math.max(tanH,.001);
+     return Math.max(vertical,horizontal)+dims.z*.5;
+    }
     const ro=new ResizeObserver(size);ro.observe(stage);size();cz=bz;cy=by;cly=ly;cam.position.set(bx,by,bz);
     const io=new IntersectionObserver((en)=>{vis=en[0].isIntersecting});io.observe(stage);
 
@@ -396,8 +405,10 @@ function init(container: HTMLElement, api: any) {
      if(!drag){rotY+=vel*dt+(reduce?0:(sel?.05:.12)*dt);vel*=.94;rotX*=.92}
      stack.rotation.y=rotY;stack.rotation.x=rotX;
      const k=reduce?1:.07,sb=sel?bands[idx(sel)]:null;
-     cz+=((sb?(narrow?16:11.5):bz)-cz)*k;cy+=((sb?sb.y+1.1:by)-cy)*k;
-     cly+=((sb?sb.y-(narrow?2.2:0):ly)-cly)*k;
+     const focusTargetY=sb?sb.y-(narrow?2.2:0):ly;
+     const zoomTarget=sb?Math.max(narrow?16:11.5,fittedFocusDistance(focusTargetY)*1.06):bz;
+     cz+=(zoomTarget-cz)*k;cy+=((sb?sb.y+1.1:by)-cy)*k;
+     cly+=(focusTargetY-cly)*k;
      cox+=((sb&&!narrow?2.4:0)-cox)*k;cam.position.set(cox+(reduce?0:px*.9),cy-(reduce?0:py*.5),cz);cam.lookAt(cox,cly,0);
      const foc=sel||hov,hi=bands.findIndex((x)=>x.v.id===foc),gap=sel?.7:.32;
      bands.forEach((b,bi)=>{const o=foc===b.v.id;
