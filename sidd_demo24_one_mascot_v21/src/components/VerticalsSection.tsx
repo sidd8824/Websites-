@@ -20,6 +20,7 @@ interface VerticalsSectionProps {
 
 export default function VerticalsSection({ onNavigate }: VerticalsSectionProps) {
   const [selectedVerticalId, setSelectedVerticalId] = useState<Vertical['id'] | null>(null);
+  const [stackFocused, setStackFocused] = useState(false);
 
   const stackCtl = useRef<{ select: (id: string) => void } | null>(null);
 
@@ -67,12 +68,13 @@ export default function VerticalsSection({ onNavigate }: VerticalsSectionProps) 
               <div className="relative max-w-6xl mx-auto">
                 <VerticalStack3D
                   controlRef={stackCtl}
+                  onFocusChange={setStackFocused}
                   onJoin={() => onNavigate('join')}
                 />
               </div>
 
               {/* Quick Selection Pills below 3D stack */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-8">
+              <div className={`grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-8 transition-all duration-[600ms] ease-in-out ${stackFocused ? 'opacity-0 translate-y-8 pointer-events-none max-h-0 overflow-hidden mt-0' : 'opacity-100 translate-y-0 max-h-[420px]'}`}>
                 {(Object.keys(VERTICALS) as Vertical['id'][]).map((vKey) => {
                   const vert = VERTICALS[vKey];
                   return (
