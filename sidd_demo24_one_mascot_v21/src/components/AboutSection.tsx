@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef } from 'react';
-import { CLUB_META } from '../data/club';
 
 export default function AboutSection() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -66,30 +65,6 @@ export default function AboutSection() {
       aria-label="About B/Stack Section"
       data-cursor="pencil"
     >
-      {/* Corner raw crosshair marks */}
-      <div className="absolute top-12 left-8 font-mono text-xs text-[#A7A3C7]/40 pointer-events-none select-none">
-        + 01.ABOUT // 45.32°N
-      </div>
-      <div className="hidden sm:block absolute top-12 right-8 font-mono text-xs text-[#A7A3C7]/40 pointer-events-none select-none">
-        [BOSSCODER TECH] +
-      </div>
-      <div className="absolute bottom-12 left-8 font-mono text-xs text-[#A7A3C7]/40 pointer-events-none select-none">
-        + CLUSTER: 04 VERTICALS
-      </div>
-      <div className="hidden sm:block absolute bottom-12 right-8 font-mono text-xs text-[#A7A3C7]/40 pointer-events-none select-none">
-        + SYS_READY
-      </div>
-
-      {/* Giant outlined ghost word "ABOUT" bleeding off the left edge */}
-      <div className="absolute -left-12 top-1/2 -translate-y-1/2 pointer-events-none select-none opacity-[0.05] z-0">
-        <span
-          className="font-display font-black text-[18vw] leading-none text-transparent"
-          style={{ WebkitTextStroke: '3px #E6EDF7' }}
-        >
-          ABOUT
-        </span>
-      </div>
-
       {/* Rotated vertical line: "the tech club of Bosscoder School of Technology" */}
       <div className="hidden lg:block absolute left-8 top-1/3 -rotate-90 origin-left font-mono text-xs tracking-widest text-[#A7A3C7]/70 uppercase pointer-events-none">
         — The tech club of Bosscoder School of Technology
@@ -305,27 +280,7 @@ export default function AboutSection() {
           </div>
         </div>
 
-        {/* Small EST. 20XX sticker + tilted floating mini stack of four colored layers */}
-        <div className="mt-16 flex flex-wrap items-center justify-between gap-6">
-          <div className="inline-flex items-center gap-3 px-4 py-2 rounded-xl glass glow-cyan">
-            <span className="font-mono text-xs text-[#A7A3C7]">Founded at</span>
-            <span className="font-mono text-xs font-bold text-[#E6EDF7]">{CLUB_META.institution}</span>
-            <span className="px-2 py-0.5 rounded bg-[#67E8F9] text-[#0B0A16] font-mono text-[10px] font-black">
-              {CLUB_META.established}
-            </span>
-          </div>
 
-          {/* Floating mini stack of 4 colored layers */}
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-xs text-[#A7A3C7] mr-2">Core Layers:</span>
-            <div className="flex -space-x-1.5">
-              <span className="w-6 h-6 rounded-md bg-[#8B5CF6] border border-white/30 shadow-[0_0_14px_rgba(139,92,246,0.7)] transform -rotate-6" title="B/Algo" />
-              <span className="w-6 h-6 rounded-md bg-[#1D9E75] border border-white/30 shadow-[0_0_14px_rgba(29,158,117,0.7)] transform -rotate-3" title="B/Uild" />
-              <span className="w-6 h-6 rounded-md bg-[#D85A30] border border-white/30 shadow-[0_0_14px_rgba(216,90,48,0.7)] transform rotate-3" title="B/Hack" />
-              <span className="w-6 h-6 rounded-md bg-[#378ADD] border border-white/30 shadow-[0_0_14px_rgba(55,138,221,0.7)] transform rotate-6" title="B/Dev" />
-            </div>
-          </div>
-        </div>
       </div>
     </section>
   );
