@@ -111,10 +111,6 @@ export default function VerticalStack3D({ onJoin, onFocusChange, controlRef }: V
         )}
       </div>
 
-      <div className="pointer-events-none absolute top-2 left-3 max-w-[calc(100%-1.5rem)] font-mono text-[9px] sm:text-[10px] text-[#A7A3C7]/70 bg-black/30 px-2 py-1 rounded">
-        DRAG TO ROTATE ↻ · ARROW KEYS WORK TOO
-      </div>
-
       <aside className={`dos${selId ? ' open' : ''}`} style={{ ['--c' as any]: sv.c }} aria-live="polite">
         <button className="x" aria-label="Close" onClick={() => ctl() && ctl().close()}>×</button>
         <span className="chip">VERTICAL DOSSIER</span>
