@@ -1,6 +1,5 @@
 .journey { height: 800vh; color: #edf2f7; background: #050805; font-family: Inter, sans-serif; }
 .journey-stage { position: sticky; top: 0; height: 100svh; overflow: hidden; isolation: isolate; }
-.journey-background { position: absolute; inset: 0; opacity: .65; z-index: -3; }
 .journey-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -2; touch-action: pan-y; }
 .journey-shade { position: absolute; inset: 0; pointer-events: none; z-index: -1; background: linear-gradient(90deg,rgba(3,9,9,.92),transparent 55%),linear-gradient(0deg,#050b0c 0%,transparent 24%); }
 .journey-header { position: absolute; top: 24px; left: 4vw; right: 4vw; display: flex; align-items: center; gap: 20px; padding: 13px 24px; border: 1px solid #7cb9c02b; border-radius: 50px; background: #0b1516a8; backdrop-filter: blur(18px); }
@@ -65,4 +64,22 @@
 }
 @media(prefers-reduced-motion: reduce) {
  .journey-copy,.journey-event-dialog { animation: none; }
+}
+
+.journey-stage { background: #101e34; }
+.journey-shade { background: linear-gradient(90deg,#0e1929cc,transparent 65%),linear-gradient(0deg,#111c2de8 0%,transparent 38%); }
+.journey-header { background: transparent; border: 0; padding-inline: 0; backdrop-filter: none; }
+.journey-header nav { background: #f5f0e5; color: #302c24; border-radius: 32px; padding: 5px 5px 5px 19px; }
+.journey-header nav button,.journey-action { background: #d7a640; color: #211a0f; }
+.journey-eyebrow { color: #f3d695; }
+.journey-copy h1 { font-family: Georgia,serif; font-weight: 500; letter-spacing: -0.04em; color: #fff9e9; }
+.journey-description { color: #eff0eb; }
+.journey-controls button { background: #f5f0e5; color: #302c24; border-color: #fff8e7; }
+.journey-controls > span,.journey-chapters button { color: #e6e0d0; }
+.journey-progress { background: #f4edda55; }
+.journey-chapters button[aria-current] i,.journey-progress i { background: #ff9c46; }
+.journey-chapters button[aria-current] i { box-shadow: 0 0 10px #ff9c46; }
+@media(max-width: 750px) {
+  .journey-canvas { top: 0; height: 100%; }
+  .journey-shade { background: linear-gradient(180deg,#101e34e0,transparent 55%,#101e34eb); }
 }

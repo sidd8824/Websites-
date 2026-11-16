@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { createJourney, stops } from './scene';
 import { CLUB_META, EVENTS } from '../../data/club';
-import TerminalBackground from '../TerminalBackground';
 import HeroSection from '../HeroSection';
 import AboutSection from '../AboutSection';
 import VerticalsSection from '../VerticalsSection';
@@ -132,7 +131,6 @@ export default function HomeJourney() {
     <div className="journey" ref={wrapper}>
       <GlobalDoodleFilter />
       <div className="journey-stage">
-        <div className="journey-background"><TerminalBackground /></div>
         <canvas ref={canvas} className="journey-canvas" aria-label="Interactive B/Stack campus. Use the chapter navigation and buttons to access every landmark." />
         <div className="journey-shade" />
         <header className="journey-header">

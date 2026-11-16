@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { buildLandscape } from './landscape';
 import { EVENTS, VERTICALS } from '../../data/club';
 
 export const stops = [
@@ -18,13 +19,26 @@ export function createJourney(canvas: HTMLCanvasElement, onSelect: (id: string) 
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.35;
   const scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2('#050805', 0.012);
+  const daySky = new THREE.Color('#c8dde7');
+  const nightSky = new THREE.Color('#101e34');
+  const sky = daySky.clone();
+  scene.background = sky;
+  const fog = new THREE.FogExp2(daySky, 0.006);
+  scene.fog = fog;
+  const starPositions = Array.from({ length: 450 }, (_, i) => [
+    Math.sin(i * 21.7) * 240, 46 + (i * 13 % 125), -282 + Math.cos(i * 14.1) * 150,
+  ]).flat();
+  const starsGeometry = new THREE.BufferGeometry();
+  starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
+  const starMaterial = new THREE.PointsMaterial({ color: '#d3dcee', transparent: true, opacity: 0, size: 0.55 });
+  scene.add(new THREE.Points(starsGeometry, starMaterial));
   const camera = new THREE.PerspectiveCamera(48, 1, 0.1, 350);
-  scene.add(new THREE.HemisphereLight('#b9d9ff', '#132d22', 2.8));
-  const sun = new THREE.DirectionalLight('#d3e7ff', 4);
+  const ambient = new THREE.HemisphereLight('#cadff4', '#5a6747', 2.15);
+  scene.add(ambient);
+  const sun = new THREE.DirectionalLight('#ffeed2', 2.5);
   sun.position.set(20, 35, 10);
   scene.add(sun);
-  const warm = new THREE.DirectionalLight('#a091ff', 2);
+  const warm = new THREE.DirectionalLight('#849dca', 0.7);
   warm.position.set(-30, 12, -30);
   scene.add(warm);
   const metal = new THREE.MeshStandardMaterial({ color: '#697b91', metalness: 0.72, roughness: 0.34 });
@@ -67,32 +81,60 @@ export function createJourney(canvas: HTMLCanvasElement, onSelect: (id: string) 
     object.userData.action = id;
     targets.push(object);
   }
+  const stone = new THREE.MeshStandardMaterial({ color: '#d9ccb1', roughness: 0.91 });
+  const roof = new THREE.MeshStandardMaterial({ color: '#a8432e', roughness: 0.79 });
+  const glazing = new THREE.MeshStandardMaterial({ color: '#254355', roughness: 0.45 });
   function building(group: THREE.Group, name: string, color: string, id: string) {
-    const body = mesh(new THREE.BoxGeometry(10, 6, 7), dark, group, 0, 3.5);
+    const modern = id === 'projects';
+    const height = modern ? 13 : 7;
+    const body = mesh(new THREE.BoxGeometry(13, height, 9), modern ? glazing : stone, group, 0, height / 2);
     pick(body, id);
-    mesh(new THREE.BoxGeometry(11, 0.35, 8), metal, group, 0, 6.7);
-    for (let x = -4; x <= 4; x += 2) {
-      mesh(new THREE.BoxGeometry(0.15, 6, 7.2), metal, group, x, 3.5);
-      mesh(new THREE.BoxGeometry(1.4, 2.5, 0.08), glow(color), group, x, 3.5, 3.55);
+    for (let level = 3; level < height; level += 2.5) {
+      mesh(new THREE.BoxGeometry(13.3, 0.18, 9.35), stone, group, 0, level);
+      for (let column = -5; column <= 5; column += 2) {
+        const pane = mesh(new THREE.BoxGeometry(1.1, 1.45, 0.09), modern && (column + level) % 3 > 0.9 ? glow('#c7a467') : glazing, group, column, level - 1.15, 4.53);
+        pick(pane, id);
+      }
     }
-    const sign = label(name, '#ffffff', 9, 1.8);
-    sign.position.set(0, 7.9, 3.5);
+    if (modern) {
+      mesh(new THREE.BoxGeometry(13.6, 0.42, 9.65), stone, group, 0, height);
+      for (let x = -6; x <= 6; x += 2) {
+        mesh(new THREE.BoxGeometry(0.16, height, 0.17), stone, group, x, height / 2, 4.58);
+      }
+    } else {
+      const canopy = mesh(new THREE.ConeGeometry(9.6, 3.5, 4), roof, group, 0, height + 1.6);
+      canopy.rotation.y = Math.PI / 4;
+      canopy.scale.z = 0.72;
+      mesh(new THREE.BoxGeometry(13.7, 0.3, 2.8), stone, group, 0, 4.5, 5.9);
+      for (const x of [-5.6, -3.4, 3.4, 5.6]) {
+        mesh(new THREE.CylinderGeometry(0.21, 0.25, 4.4, 12), stone, group, x, 2.2, 6.8);
+      }
+    }
+    const signHeight = modern ? height - 0.85 : 5.35;
+    mesh(new THREE.BoxGeometry(10.5, 1.5, 0.24), modern ? dark : roof, group, 0, signHeight, 4.8);
+    const sign = label(name, color, 9, 2.5);
+    sign.position.set(0, signHeight, 4.95);
     group.add(sign);
     pick(sign, id);
-    mesh(new THREE.BoxGeometry(3, 2.8, 0.3), dark, group, 0, 1.8, 3.8);
-    for (let i = 0; i < 3; i++) mesh(new THREE.BoxGeometry(5 + i, 0.15, 0.8), metal, group, 0, 0.25 - i * 0.05, 4.1 + i * 0.7);
+    const door = mesh(new THREE.BoxGeometry(3, 2.8, 0.32), glazing, group, 0, 1.45, 4.65);
+    pick(door, id);
+    for (let i = 0; i < 3; i++) mesh(new THREE.BoxGeometry(6 + i, 0.25, 0.8), stone, group, 0, 0.27 - i * 0.09, 4.8 + i * 0.72);
   }
 
-  // A continuous route connects the landmarks in world coordinates.
-  const roadPath = new THREE.CatmullRomCurve3(stops.map(s => new THREE.Vector3(s.x + 7, -0.15, s.z)));
-  mesh(new THREE.TubeGeometry(roadPath, 180, 0.045, 5, false), glow('#67e8cf'), scene);
+  const roadPath = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(-7, -0.26, 42),
+    ...stops.map(s => new THREE.Vector3(s.x + 13, -0.26, s.z)),
+    new THREE.Vector3(22, -0.26, -249),
+  ]);
+  const animateLandscape = buildLandscape(scene, roadPath);
+  const moon = mesh(new THREE.SphereGeometry(3.5, 32, 24), new THREE.MeshStandardMaterial({ color: '#aaaeb1', emissive: '#616875', emissiveIntensity: 0.45 }), scene, 40, 54, -295);
+  moon.visible = false;
   stops.forEach((stop, index) => {
     const group = new THREE.Group();
     group.position.set(stop.x, 0, stop.z);
     scene.add(group);
     groups.push(group);
-    mesh(new THREE.CylinderGeometry(8, 8.4, 0.45, 64), dark, group, 0, -0.5);
-    ring(group, 8, -0.25, '#315d62');
+    mesh(new THREE.BoxGeometry(15, 0.28, 15), stone, group, 0, -0.26);
     if (index === 0) {
       const title = label('B/Stack', '#ffffff', 15, 4);
       title.position.set(0, 5, 1);
@@ -100,9 +142,10 @@ export function createJourney(canvas: HTMLCanvasElement, onSelect: (id: string) 
       const subtitle = label('MAKE · BREAK · SHIP', '#67e8f9', 9, 1.2);
       subtitle.position.set(0, 2.3, 1);
       group.add(subtitle);
-      for (let i = 0; i < 3; i++) {
-        const portal = mesh(new THREE.TorusGeometry(7.5 + i * 0.3, 0.1, 10, 100, Math.PI), i === 0 ? glow('#67e8f9') : metal, group, 0, 1, -i * 0.7);
-        portal.rotation.z = 0;
+      mesh(new THREE.BoxGeometry(11, 4.2, 0.45), dark, group, 0, 4, 0.65);
+      mesh(new THREE.BoxGeometry(12, 0.38, 0.85), stone, group, 0, 6.35, 0.6);
+      for (const x of [-5.4, 5.4]) {
+        mesh(new THREE.BoxGeometry(0.65, 6.4, 1.2), stone, group, x, 3.15, 0.55);
       }
       pick(title, 'home');
     } else if (index === 1) {
@@ -129,7 +172,7 @@ export function createJourney(canvas: HTMLCanvasElement, onSelect: (id: string) 
         pick(sign, 'verticals');
       });
     } else if (index === 3) {
-      building(group, 'PROJECTS', '#79b4e8', 'projects');
+      building(group, 'PROJECTS', '#fff1ca', 'projects');
       const rover = new THREE.Group();
       rover.position.set(5, 0.4, 5);
       mesh(new THREE.BoxGeometry(1.8, 0.6, 2.5), metal, rover, 0, 0.5);
@@ -164,7 +207,7 @@ export function createJourney(canvas: HTMLCanvasElement, onSelect: (id: string) 
         pick(name, event.id);
       });
     } else if (index === 5) {
-      building(group, 'THE CREW', '#ad92e7', 'team');
+      building(group, 'THE CREW', '#fff1ca', 'team');
     } else {
       const title = label('YOUR PLACE IN THE STACK', '#ffffff', 12, 1.5);
       title.position.set(0, 7, 0);
@@ -227,7 +270,8 @@ export function createJourney(canvas: HTMLCanvasElement, onSelect: (id: string) 
   const observer = new ResizeObserver(resize);
   observer.observe(canvas);
   resize();
-  function render() {
+  const moonlight = new THREE.Color('#bccfee');
+  function render(now = 0) {
     progress += (target - progress) * (reduced ? 1 : 0.055);
     const a = Math.min(stops.length - 1, Math.floor(progress));
     const b = Math.min(stops.length - 1, a + 1);
@@ -236,10 +280,20 @@ export function createJourney(canvas: HTMLCanvasElement, onSelect: (id: string) 
     const x = THREE.MathUtils.lerp(stops[a].x, stops[b].x, t);
     const z = THREE.MathUtils.lerp(stops[a].z, stops[b].z, t);
     const towerWeight = THREE.MathUtils.lerp(a === 4 ? 1 : 0, b === 4 ? 1 : 0, t);
-    const mobile = camera.aspect < 0.8;
-    const distance = mobile ? 32 : 24;
-    camera.position.set(x + (mobile ? 1 : 9), 9 + towerWeight * 5, z + distance + towerWeight * 8);
-    camera.lookAt(x, 3.8 + towerWeight * 7.5, z);
+    const mobile = canvas.clientWidth <= 750;
+    const distance = mobile ? 35 : 30;
+    camera.position.set(x + (mobile ? 2 : 14), 17 + towerWeight * 2, z + distance + towerWeight * 4);
+    camera.lookAt(x - (mobile ? 0 : 8), (mobile ? 6.5 : 3.5) + towerWeight * 6.8, z - 1);
+    const dusk = THREE.MathUtils.smoothstep(progress, 2.9, 5.35);
+    sky.copy(daySky).lerp(nightSky, dusk);
+    fog.color.copy(sky);
+    fog.density = THREE.MathUtils.lerp(0.0055, 0.0045, dusk);
+    ambient.intensity = THREE.MathUtils.lerp(2.15, 0.62, dusk);
+    sun.intensity = THREE.MathUtils.lerp(2.5, 0.85, dusk);
+    sun.color.set('#ffeed2').lerp(moonlight, dusk);
+    starMaterial.opacity = dusk * 0.76;
+    moon.visible = dusk > 0.7;
+    animateLandscape(reduced ? 0 : now * 0.001);
     groups[4].rotation.y = rotation;
     renderer.render(scene, camera);
     frame = requestAnimationFrame(render);
@@ -257,12 +311,15 @@ export function createJourney(canvas: HTMLCanvasElement, onSelect: (id: string) 
       const materials = new Set<THREE.Material>();
       scene.traverse(object => {
         if (object instanceof THREE.Mesh) {
+          if (object instanceof THREE.InstancedMesh) object.dispose();
           geometries.add(object.geometry);
           for (const material of Array.isArray(object.material) ? object.material : [object.material]) materials.add(material);
         }
       });
       geometries.forEach(g => g.dispose());
       materials.forEach(m => m.dispose());
+      starsGeometry.dispose();
+      starMaterial.dispose();
       textures.forEach(t => t.dispose());
       renderer.dispose();
     },
