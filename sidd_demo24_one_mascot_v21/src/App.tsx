@@ -5,6 +5,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { registerLenis, scrollToY, scrollToElement, docTop } from './utils/scroll';
 import GlobalDoodleFilter from './components/GlobalDoodleFilter';
 import FlyThroughPage from './components/FlyThroughPage';
+import HomeJourney from './components/journey/HomeJourney';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import FixedBackground from './components/FixedBackground';
 import CustomCursor from './components/CustomCursor';
@@ -127,14 +128,7 @@ function SiteApp() {
       return;
     }
     if (location.pathname !== '/') {
-      navigate('/');
-      window.setTimeout(() => {
-        if (sectionId === 'home') scrollToY(0);
-        else {
-          const el = document.getElementById(sectionId);
-          if (el) scrollToElement(el);
-        }
-      }, 80);
+      navigate('/', { state: { journeyStop: sectionId } });
       return;
     }
     if (sectionId === 'home') {
@@ -165,6 +159,7 @@ function SiteApp() {
 export default function App() {
   return (
     <Routes>
+      <Route path="/" element={<HomeJourney />} />
       <Route path="/flythrough" element={<FlyThroughPage />} />
       <Route path="*" element={<SiteApp />} />
     </Routes>

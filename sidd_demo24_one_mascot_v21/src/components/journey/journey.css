@@ -1,0 +1,68 @@
+.journey { height: 800vh; color: #edf2f7; background: #050805; font-family: Inter, sans-serif; }
+.journey-stage { position: sticky; top: 0; height: 100svh; overflow: hidden; isolation: isolate; }
+.journey-background { position: absolute; inset: 0; opacity: .65; z-index: -3; }
+.journey-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -2; touch-action: pan-y; }
+.journey-shade { position: absolute; inset: 0; pointer-events: none; z-index: -1; background: linear-gradient(90deg,rgba(3,9,9,.92),transparent 55%),linear-gradient(0deg,#050b0c 0%,transparent 24%); }
+.journey-header { position: absolute; top: 24px; left: 4vw; right: 4vw; display: flex; align-items: center; gap: 20px; padding: 13px 24px; border: 1px solid #7cb9c02b; border-radius: 50px; background: #0b1516a8; backdrop-filter: blur(18px); }
+.journey button, .journey a { cursor: pointer; }
+.journey button:focus-visible,.journey a:focus-visible { outline: 2px solid #67e8f9; outline-offset: 6px; }
+.journey-logo { font-size: 26px; font-weight: 900; letter-spacing: -1.6px; background: transparent; border: 0; color: white; }
+.journey-logo span { color: #67e8f9; }
+.journey-institution { font: 10px monospace; letter-spacing: 2px; color: #9db8b8; }
+.journey-header nav { margin-left: auto; display: flex; gap: 24px; align-items: center; font-size: 12px; }
+.journey-header nav button { background: #cdf6e4; color: #142420; border: 0; border-radius: 30px; padding: 10px 18px; }
+.journey-copy { position: absolute; left: 6vw; top: 27%; width: min(420px,34vw); animation: chapter-enter .6s ease both; }
+.journey-eyebrow { font: 10px monospace; letter-spacing: 2px; color: #8cb3ad; margin: 0 0 24px; }
+.journey-copy h1 { font-family: 'Bricolage Grotesque',Inter,sans-serif; font-size: clamp(32px,4vw,66px); font-weight: 600; line-height: 1.05; letter-spacing: -2.5px; white-space: pre-line; margin: 0 0 24px; }
+.journey-description { font-size: 14px; color: #b5c6c6; max-width: 320px; line-height: 1.8; margin-bottom: 25px; }
+.journey-action { background: #d8f2de; color: #142420; padding: 14px 22px; border: 0; border-radius: 5px; font-size: 12px; font-weight: 600; display: inline-flex; gap: 24px; align-items: center; }
+.journey-event-links { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+.journey-event-links button { color: #d0e4e1; padding: 6px 10px; font: 11px monospace; border: 1px solid #537371; background: #142323; border-radius: 4px; }
+.journey-controls { position: absolute; bottom: 105px; left: 6vw; right: 6vw; display: flex; justify-content: flex-end; align-items: center; gap: 10px; }
+.journey-controls > span { margin-right: auto; color: #829994; font: 10px monospace; text-transform: uppercase; letter-spacing: 2px; }
+.journey-controls button { border: 1px solid #6a938c55; border-radius: 5px; background: #132321c9; padding: 10px 16px; color: #d7e9e3; font-size: 12px; }
+.journey-controls button:disabled { opacity: .4; cursor: default; }
+.journey-chapters { position: absolute; bottom: 22px; left: 6vw; right: 6vw; display: flex; }
+.journey-chapters button { flex: 1; color: #7e9993; background: none; border: 0; font-size: 12px; text-align: left; padding: 12px 0 20px; position: relative; }
+.journey-chapters button[aria-current] { color: #edfff6; }
+.journey-chapters button i { position: absolute; bottom: -2px; left: 0; width: 5px; height: 5px; border-radius: 50%; background: #45645a; }
+.journey-chapters button[aria-current] i { background: #a4f3cf; box-shadow: 0 0 12px #a4f3cf; }
+.journey-progress { position: absolute; bottom: 0; height: 1px; background: #2b403b; width: 100%; }
+.journey-progress i { display: block; width: 100%; height: 100%; background: #a4f3cf; transform-origin: left; }
+.journey-loading { position: absolute; top: 50%; left: 52%; max-width: 300px; padding: 20px; background: #102320; }
+.journey-dialog { position: fixed; inset: 0; margin: auto; width: min(1200px,94vw); max-height: 90svh; padding: 0; border: 1px solid #789f9a55; border-radius: 20px; background: #070d13; color: #e6edf7; overflow: auto; }
+.journey-dialog::backdrop { background: #010605bb; backdrop-filter: blur(12px); }
+.journey-close { position: sticky; display: block; margin: 14px 18px 0 auto; top: 14px; z-index: 100; border: 1px solid #789f9a77; border-radius: 30px; padding: 9px 18px; color: white; background: #132323; }
+.journey-dialog-content { padding: 20px; }
+.journey-dialog-content section { min-height: auto !important; }
+.journey-event-dialog { width: min(650px,92vw); animation: banner-open .55s cubic-bezier(.2,.7,.2,1) both; }
+.journey-event-detail { padding: 30px; border-top: 3px solid; }
+.journey-event-detail h2 { font-size: clamp(25px,4vw,40px); line-height: 1.15; margin-bottom: 26px; }
+.journey-event-detail p { line-height: 1.8; color: #b9ccce; margin-bottom: 16px; }
+@keyframes chapter-enter { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes banner-open { from { opacity: 0; transform: perspective(900px) translateX(90px) rotateY(-20deg) scale(.8); } to { opacity: 1; transform: none; } }
+@media(max-width: 750px) {
+ .journey-header { top: 12px; padding: 10px 16px; gap: 8px; }
+ .journey-institution { display: none; }
+ .journey-header nav { gap: 12px; font-size: 11px; }
+ .journey-logo { font-size: 23px; }
+ .journey-copy { top: 13%; width: 88%; left: 6%; pointer-events: none; }
+ .journey-copy h1 { font-size: 30px; letter-spacing: -1px; margin-bottom: 10px; }
+ .journey-eyebrow { margin-bottom: 10px; font-size: 9px; }
+ .journey-description { max-width: 300px; font-size: 12px; line-height: 1.5; margin-bottom: 12px; }
+ .journey-copy button { pointer-events: auto; }
+ .journey-action { padding: 10px 14px; }
+ .journey-canvas { top: 13%; height: 87%; }
+ .journey-shade { background: linear-gradient(180deg,#05080599,transparent 50%,#050805 94%); }
+ .journey-controls { bottom: 93px; gap: 6px; }
+ .journey-controls > span { display: none; }
+ .journey-controls button { font-size: 11px; padding: 9px; }
+ .journey-chapters { left: 4vw; right: 4vw; bottom: 25px; }
+ .journey-chapters button { font-size: 10px; }
+ .journey-event-links { max-width: 320px; }
+ .journey-event-detail { padding: 15px; }
+ .journey-loading { left: 6%; top: 55%; }
+}
+@media(prefers-reduced-motion: reduce) {
+ .journey-copy,.journey-event-dialog { animation: none; }
+}
