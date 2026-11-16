@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Lenis from 'lenis';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -54,34 +54,9 @@ function CrewPage() {
   );
 }
 
-const TRANSITION_LAYERS = ['#8B5CF6', '#1D9E75', '#D85A30', '#378ADD'];
-
-function PageTransition({ active, leaving }: { active: boolean; leaving: boolean }) {
-  if (!active) return null;
-  return (
-    <div className="fixed inset-0 z-[100] pointer-events-auto overflow-hidden" aria-hidden="true">
-      {TRANSITION_LAYERS.map((color, index) => (
-        <div
-          key={color}
-          className="absolute inset-0"
-          style={{
-            backgroundColor: color,
-            transform: leaving ? 'translateY(-105%)' : 'translateY(105%)',
-            transition: 'transform 620ms cubic-bezier(0.76, 0, 0.24, 1)',
-            transitionDelay: leaving ? `${(3 - index) * 65}ms` : `${index * 65}ms`,
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
 function SiteApp() {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [activeSection, setActiveSection] = useState('home');
-  const [transition, setTransition] = useState<'enter' | 'exit' | null>(null);
-  const transitionBusy = useRef(false);
-  const transitionTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -140,52 +115,26 @@ function SiteApp() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [location.pathname]);
 
-  useEffect(() => () => transitionTimers.current.forEach(clearTimeout), []);
-
-  const changePage = (path: string, sectionId: string) => {
-    if (transitionBusy.current) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      navigate(path);
-      if (sectionId === 'home') scrollToY(0);
-      else if (path === '/') transitionTimers.current.push(setTimeout(() => {
-        const el = document.getElementById(sectionId);
-        if (el) scrollToElement(el);
-      }, 80));
-      else scrollToY(0);
-      return;
-    }
-    transitionBusy.current = true;
-    setTransition('enter');
-    transitionTimers.current.push(setTimeout(() => {
-      navigate(path);
-      window.scrollTo({ top: 0, behavior: 'instant' });
-      if (path === '/' && sectionId !== 'home') {
-        transitionTimers.current.push(setTimeout(() => {
-          const el = document.getElementById(sectionId);
-          if (el) scrollToElement(el);
-        }, 30));
-      }
-      setTransition('exit');
-    }, 850));
-    transitionTimers.current.push(setTimeout(() => {
-      setTransition(null);
-      transitionBusy.current = false;
-    }, 1700));
-  };
-
   const handleNavbarNavigate = (sectionId: string) => {
     if (sectionId === 'projects') {
-      if (location.pathname !== '/projects') changePage('/projects', sectionId);
-      else scrollToY(0);
+      navigate('/projects');
+      scrollToY(0);
       return;
     }
     if (sectionId === 'team') {
-      if (location.pathname !== '/team') changePage('/team', sectionId);
-      else scrollToY(0);
+      navigate('/team');
+      scrollToY(0);
       return;
     }
     if (location.pathname !== '/') {
-      changePage('/', sectionId);
+      navigate('/');
+      window.setTimeout(() => {
+        if (sectionId === 'home') scrollToY(0);
+        else {
+          const el = document.getElementById(sectionId);
+          if (el) scrollToElement(el);
+        }
+      }, 80);
       return;
     }
     if (sectionId === 'home') {
@@ -198,7 +147,6 @@ function SiteApp() {
 
   return (
     <div className="relative min-h-screen w-full bg-transparent text-[#E6EDF7] font-body selection:bg-[#67E8F9] selection:text-[#0B0A16]">
-      <PageTransition active={transition !== null} leaving={transition === 'exit'} />
       <GlobalDoodleFilter />
       <FixedBackground />
       <CustomCursor />
