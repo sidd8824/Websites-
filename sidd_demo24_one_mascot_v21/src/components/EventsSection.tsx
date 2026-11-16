@@ -27,6 +27,7 @@ import {
 import confetti from 'canvas-confetti';
 import { scrollToY, docTop } from '../utils/scroll';
 import FlightCalendar from './FlightCalendar';
+import CrtEventBrowser from './crt/CrtEventBrowser';
 
 interface EventsSectionProps {
   onNavigate: (sectionId: string) => void;
@@ -634,6 +635,8 @@ export default function EventsSection(_props: EventsSectionProps) {
           </svg>
         </div>
       </div>
+
+      <CrtEventBrowser events={[heroEvent, ...upcomingEvents].filter(event => event.status !== 'completed')} />
 
       {/* 7.2 HERO TICKET CONTAINER (with 3D tilt, live countdown, and tear mechanics) */}
       <div className="relative max-w-4xl mx-auto w-full my-4 perspective-1000">

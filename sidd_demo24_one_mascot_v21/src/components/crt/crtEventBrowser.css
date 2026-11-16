@@ -1,0 +1,92 @@
+.crt-events {
+  width: min(100%, 68rem);
+  margin: 2rem auto 3.5rem;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  border: 1px solid #b0d2bd38;
+  color: #eef2e7;
+  background: #101a1a;
+}
+
+.crt-events__stage {
+  position: relative;
+  height: clamp(19rem, 55vw, 38rem);
+  max-height: 77svh;
+  overflow: hidden;
+  touch-action: pan-y pinch-zoom;
+  overscroll-behavior-x: contain;
+  cursor: grab;
+  background: radial-gradient(ellipse at 49% 46%, #4c6464, #24383d 55%, #10191e 100%);
+}
+
+.crt-events__stage:active { cursor: grabbing; }
+.crt-events__stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+.crt-events__fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: .75rem;
+  padding: 1.25rem;
+  text-align: center;
+  pointer-events: none;
+}
+.crt-events__fallback p { max-width: 34rem; margin: 0; }
+.crt-events__fallback-title { font: 700 clamp(1.3rem, 4vw, 2.5rem)/1.12 Georgia, serif; }
+.crt-events__signal { font: .8rem ui-monospace, monospace; color: #b0d7b9; }
+
+.crt-events__controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: .75rem 1.25rem;
+  min-height: 5rem;
+  padding: .9rem clamp(.85rem, 3vw, 1.5rem);
+  border-top: 1px solid #b0d2bd38;
+}
+.crt-events__status { min-width: 0; flex: 1 1 16rem; }
+.crt-events__status p { margin: 0; }
+.crt-events__status p:first-child { font-weight: 700; }
+.crt-events__status p:nth-child(2) { color: #a9beb6; font: .78rem ui-monospace, monospace; }
+.crt-events__buttons { display: flex; gap: .5rem; align-items: center; }
+.crt-events__buttons button {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: .5rem;
+  border: 1px solid #92b6a473;
+  display: grid;
+  place-items: center;
+  color: inherit;
+  cursor: pointer;
+}
+.crt-events__buttons button:hover:enabled { background: #263f39; }
+.crt-events__buttons button:disabled { opacity: .42; cursor: default; }
+.crt-events__buttons button:focus-visible { outline: 2px solid #c3e5aa; outline-offset: 3px; }
+.crt-events__buttons button.crt-events__open {
+  padding-inline: 1rem;
+  background: #c3e5aa;
+  color: #16271e;
+  font-weight: 700;
+}
+.crt-events__buttons button.crt-events__open:hover { background: #ddeecf; }
+
+@media (min-width: 641px) {
+  .crt-events__detail-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+@media (max-width: 640px) {
+  .crt-events__status .crt-events__detail-text {
+    margin-top: .4rem;
+    font-size: .875rem;
+    color: #dde8de;
+  }
+}
