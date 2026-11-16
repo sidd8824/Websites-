@@ -11,7 +11,6 @@ import {
 import {
   Calendar,
   MapPin,
-  Sparkles,
   X,
   ArrowUpRight,
   CheckCircle2,
@@ -395,7 +394,7 @@ export default function EventsSection(_props: EventsSectionProps) {
       id="events"
       ref={sectionRef}
       onMouseMove={handleSectionMouseMove}
-      className="relative min-h-screen scroll-mt-28 py-24 sm:py-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex flex-col justify-center select-none overflow-visible"
+      className="relative min-h-screen scroll-mt-24 pt-8 sm:pt-12 pb-24 sm:pb-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex flex-col justify-center select-none overflow-visible"
       aria-label="Events Section"
     >
       {/* 7.1 CURSOR TIME TRAIL PARTICLES OVER EVENTS SECTION (Desktop Only) */}
@@ -495,146 +494,6 @@ export default function EventsSection(_props: EventsSectionProps) {
           })}
         </div>
       )}
-
-      {/* 7.3 HAND-DRAWN DOODLES: Twinkling sparkles in yellow and coral */}
-      <div className="absolute top-12 left-6 sm:left-14 pointer-events-none z-10" aria-hidden="true">
-        <svg
-          width="26"
-          height="26"
-          viewBox="0 0 24 24"
-          fill="none"
-          className="wobble-doodle animate-sparkle"
-          style={{ animationDelay: '0.2s' }}
-        >
-          <path
-            d="M12 2L14 9.5L21.5 11.5L14 13.5L12 21L10 13.5L2.5 11.5L10 9.5L12 2Z"
-            fill="#67E8F9"
-          />
-        </svg>
-      </div>
-
-      <div className="absolute top-24 right-10 sm:right-28 pointer-events-none z-10" aria-hidden="true">
-        <svg
-          width="22"
-          height="22"
-          viewBox="0 0 24 24"
-          fill="none"
-          className="wobble-doodle animate-sparkle"
-          style={{ animationDelay: '1.2s' }}
-        >
-          <path
-            d="M12 2L13.5 9L20.5 10.5L13.5 12L12 19L10.5 12L3.5 10.5L10.5 9L12 2Z"
-            fill="#F0997B"
-          />
-        </svg>
-      </div>
-
-      {/* Doodled rocket that bobs in the top-right corner with translateY & rotation loop */}
-      <div
-        className="absolute top-6 right-4 sm:right-10 pointer-events-none z-10 hidden sm:block"
-        aria-hidden="true"
-      >
-        <div className="wobble-doodle animate-rocket-bob flex flex-col items-center">
-          <svg width="44" height="44" viewBox="0 0 48 48" fill="none">
-            {/* Rocket body */}
-            <path
-              d="M24 4C18 10 16 20 16 30L24 36L32 30C32 20 30 10 24 4Z"
-              fill="#F3EFE6"
-              stroke="#0B0A16"
-              strokeWidth="2.5"
-              strokeLinejoin="round"
-            />
-            {/* Portal window */}
-            <circle cx="24" cy="18" r="4.5" fill="#378ADD" stroke="#0B0A16" strokeWidth="2" />
-            {/* Fins */}
-            <path d="M16 26L8 32L16 32Z" fill="#E8572A" stroke="#0B0A16" strokeWidth="2" />
-            <path d="M32 26L40 32L32 32Z" fill="#E8572A" stroke="#0B0A16" strokeWidth="2" />
-            {/* Flame */}
-            <path
-              d="M20 36C20 42 24 46 24 46C24 46 28 42 28 36Z"
-              fill="#67E8F9"
-              stroke="#0B0A16"
-              strokeWidth="1.5"
-            />
-          </svg>
-          <span className="font-mono text-[9px] text-[#67E8F9] mt-0.5 tracking-wider uppercase font-bold">
-            t-minus
-          </span>
-        </div>
-      </div>
-
-      {/* SECTION HEADER: Centered badge, Self-Drawing Loop around Title & Wavy Lime Underline */}
-      <div className="text-center max-w-3xl mx-auto mb-14 relative z-10 flex flex-col items-center">
-        {/* FLIGHT CALENDAR badge centered cleanly above the title */}
-        <button
-          type="button"
-          onClick={() => {
-            const el = document.getElementById('flight-calendar');
-            if (el) scrollToY(docTop(el) - 110);
-          }}
-          className="group inline-flex items-center gap-2 px-3.5 py-1 rounded-full glass-chip text-xs font-mono text-[#67E8F9] mb-4 cursor-pointer"
-          aria-label="Jump to the flight calendar"
-        >
-          <Sparkles className="w-3.5 h-3.5 text-[#E8572A]" />
-          <span>FLIGHT CALENDAR</span>
-          <span aria-hidden="true" className="inline-block transition-transform group-hover:translate-y-0.5">↓</span>
-        </button>
-
-        <div className="relative inline-block px-4">
-          <h2 className="font-display font-black text-3xl min-[400px]:text-4xl sm:text-6xl text-[#E6EDF7] tracking-tight relative z-10 leading-none">
-            Upcoming events<span className="text-[#E8572A]">.</span>
-          </h2>
-
-          {/* 7.3 Hand-drawn loop circling the title that draws itself with stroke-dashoffset */}
-          <svg
-            className="absolute -inset-x-3 sm:-inset-x-8 -inset-y-4 w-[calc(100%+24px)] sm:w-[calc(100%+64px)] h-[calc(100%+32px)] pointer-events-none wobble-doodle z-0"
-            viewBox="0 0 520 95"
-            fill="none"
-            aria-hidden="true"
-          >
-            <path
-              d="M 32,50 C 24,20 90,8 260,10 C 430,12 498,26 496,52 C 494,78 410,88 250,86 C 90,84 38,72 46,48"
-              stroke="#67E8F9"
-              strokeWidth="2.8"
-              strokeLinecap="round"
-              strokeDasharray="1100"
-              strokeDashoffset={inView ? 0 : 1100}
-              style={{
-                transition: 'stroke-dashoffset 1.4s cubic-bezier(0.25, 1, 0.5, 1) 0.15s',
-              }}
-            />
-          </svg>
-        </div>
-
-        {/* Mono subtitle */}
-        <p className="font-mono text-xs sm:text-sm text-[#A7A3C7] mt-4 uppercase tracking-widest relative inline-block">
-          hackathons, contests, workshops
-        </p>
-
-        {/* 7.3 Wavy lime underline */}
-        <div className="flex justify-center mt-1">
-          <svg
-            width="220"
-            height="14"
-            viewBox="0 0 220 14"
-            fill="none"
-            className="wobble-doodle pointer-events-none"
-            aria-hidden="true"
-          >
-            <path
-              d="M 5,7 Q 25,1 45,7 T 85,7 T 125,7 T 165,7 T 205,7"
-              stroke="#67E8F9"
-              strokeWidth="2.4"
-              strokeLinecap="round"
-              strokeDasharray="240"
-              strokeDashoffset={inView ? 0 : 240}
-              style={{
-                transition: 'stroke-dashoffset 1s ease-out 0.4s',
-              }}
-            />
-          </svg>
-        </div>
-      </div>
 
       <CrtEventBrowser events={[heroEvent, ...upcomingEvents].filter(event => event.status !== 'completed')} />
 

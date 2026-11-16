@@ -134,8 +134,8 @@ export default function CrtEventBrowser({ events }: Props) {
       </div>
       <div className="crt-events__controls">
         <div className="crt-events__status" aria-live="polite" aria-atomic="true">
-          <p>{event.title}</p>
-          <p>{detail ? sectionName : `${index + 1} / ${events.length} · Scroll sideways or drag`}</p>
+          <p className="sr-only">{event.title}</p>
+          <p className="sr-only">{detail ? sectionName : `${index + 1} / ${events.length} · Scroll sideways or drag`}</p>
           {detail && <p className="crt-events__detail-text">{page === 0 ? event.note : `${event.dateStr}. ${event.location}`}</p>}
         </div>
         <div className="crt-events__buttons">

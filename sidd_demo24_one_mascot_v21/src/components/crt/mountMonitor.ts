@@ -1,6 +1,6 @@
 import {
   ACESFilmicToneMapping, CanvasTexture, DirectionalLight, HemisphereLight,
-  Mesh, MeshBasicMaterial, PerspectiveCamera, Raycaster, Scene, SRGBColorSpace,
+  Mesh, MeshBasicMaterial, PerspectiveCamera, PlaneGeometry, Raycaster, Scene, SRGBColorSpace,
   Texture, Vector2, WebGLRenderer,
 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -49,6 +49,23 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
   rim.position.set(4, 3, -4);
   scene.add(key, rim);
 
+  const shadowCanvas = document.createElement('canvas');
+  shadowCanvas.width = shadowCanvas.height = 64;
+  const shadowContext = shadowCanvas.getContext('2d')!;
+  const shade = shadowContext.createRadialGradient(32, 32, 2, 32, 32, 31);
+  shade.addColorStop(0, '#000000dc');
+  shade.addColorStop(.45, '#00000072');
+  shade.addColorStop(1, '#00000000');
+  shadowContext.fillStyle = shade;
+  shadowContext.fillRect(0, 0, 64, 64);
+  const shadowMap = new CanvasTexture(shadowCanvas);
+  const shadow = new Mesh(
+    new PlaneGeometry(4.5, 3.6),
+    new MeshBasicMaterial({ map: shadowMap, transparent: true, depthWrite: false }),
+  );
+  shadow.rotation.x = -Math.PI / 2;
+  scene.add(shadow);
+
   const camera = new PerspectiveCamera(38, 1, .1, 50);
   const art = document.createElement('canvas');
   art.width = SCREEN_WIDTH;
@@ -89,6 +106,7 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     const pose = scrollPose(state.page !== null ? 1 : scroll, 1, ratio, prefersReducedMotion.matches);
     monitor.rotation.y = pose.yaw;
     monitor.position.y = pose.y;
+    shadow.position.set(0, pose.y - .025, .05);
     camera.position.fromArray(pose.camera);
     camera.lookAt(0, pose.aimY, .15 * pose.push);
     position = approach(position, state.selected);
@@ -127,6 +145,9 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     window.removeEventListener('resize', invalidate);
     prefersReducedMotion.removeEventListener('change', invalidate);
     disposeModel();
+    shadow.geometry.dispose();
+    shadow.material.dispose();
+    shadowMap.dispose();
     renderer.dispose();
     renderer.domElement.remove();
   }, { once: true });
