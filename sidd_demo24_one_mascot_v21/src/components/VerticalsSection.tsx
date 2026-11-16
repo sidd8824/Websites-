@@ -51,9 +51,6 @@ export default function VerticalsSection({ onNavigate }: VerticalsSectionProps) 
         <div className="w-full">
           {/* Header */}
           <div className="text-center max-w-3xl mx-auto mb-8">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full glass-chip text-xs font-mono text-[#67E8F9] mb-3">
-              <span>04 SPECIALIZED VERTICALS</span>
-            </div>
             <h2 className="font-display font-black text-4xl sm:text-6xl text-[#E6EDF7] tracking-tight">
               Four verticals, <span className="text-[#8B5CF6]">one</span> <span className="text-[#1D9E75]">s</span><span className="text-[#D85A30]">t</span><span className="text-[#378ADD]">ack</span>.
             </h2>
