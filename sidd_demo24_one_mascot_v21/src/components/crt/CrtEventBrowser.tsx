@@ -18,7 +18,7 @@ export default function CrtEventBrowser({ events }: Props) {
   const index = Math.min(selected, Math.max(0, events.length - 1));
   const event = events[index];
   const state = useRef<ScreenState>({ events, selected: index, page, position: index, pagePosition: page ?? 0, showEvents: false });
-  const gesture = useRef<{ x: number; y: number; id: number } | null>(null);
+  const gesture = useRef<{ x: number; y: number; id: number; mode: 'screen' | 'cabinet' } | null>(null);
   const suppressClick = useRef(0);
   const dispatch = useRef<(step: number) => void>(() => {});
 
@@ -97,20 +97,38 @@ export default function CrtEventBrowser({ events }: Props) {
       <div ref={stage} className="crt-events__stage" data-lenis-prevent-horizontal
         onPointerDown={e => {
           if (!e.isPrimary || e.button !== 0) return;
-          gesture.current = { x: e.clientX, y: e.clientY, id: e.pointerId };
+          const mode = monitor.current?.target(e.clientX, e.clientY);
+          if (!mode) return;
+          gesture.current = { x: e.clientX, y: e.clientY, id: e.pointerId, mode };
           e.currentTarget.setPointerCapture(e.pointerId);
+          e.currentTarget.dataset.grabbing = 'true';
+        }}
+        onPointerMove={e => {
+          const start = gesture.current;
+          if (start?.id !== e.pointerId || start.mode !== 'cabinet') return;
+          monitor.current?.moveGrab(e.clientX - start.x, start.y - e.clientY);
         }}
         onPointerUp={e => {
           const start = gesture.current;
-          gesture.current = null;
           if (start?.id !== e.pointerId) return;
+          gesture.current = null;
+          delete e.currentTarget.dataset.grabbing;
           const dx = start.x - e.clientX;
-          if (Math.abs(dx) > 28 && Math.abs(dx) > Math.abs(start.y - e.clientY)) {
+          const dy = start.y - e.clientY;
+          if (start.mode === 'cabinet') monitor.current?.moveGrab(0, 0);
+          if (Math.hypot(dx, dy) > 12) {
             suppressClick.current = performance.now() + 400;
-            advance(Math.sign(dx));
+            if (start.mode === 'screen' && Math.abs(dx) > 28 && Math.abs(dx) > Math.abs(dy)) {
+              advance(Math.sign(dx));
+            }
           }
         }}
-        onPointerCancel={() => { gesture.current = null; }}
+        onLostPointerCapture={e => {
+          if (gesture.current?.id !== e.pointerId) return;
+          gesture.current = null;
+          delete e.currentTarget.dataset.grabbing;
+          monitor.current?.moveGrab(0, 0);
+        }}
         onClick={e => {
           if (performance.now() < suppressClick.current) return;
           const hit = monitor.current?.hit(e.clientX, e.clientY);
@@ -135,7 +153,7 @@ export default function CrtEventBrowser({ events }: Props) {
       <div className="crt-events__controls">
         <div className="crt-events__status" aria-live="polite" aria-atomic="true">
           <p className="sr-only">{event.title}</p>
-          <p className="sr-only">{detail ? sectionName : `${index + 1} / ${events.length} · Scroll sideways or drag`}</p>
+          <p className="sr-only">{detail ? sectionName : `${index + 1} / ${events.length} · Scroll sideways or drag across the screen`}</p>
           {detail && <p className="crt-events__detail-text">{page === 0 ? event.note : `${event.dateStr}. ${event.location}`}</p>}
         </div>
         <div className="crt-events__buttons">

@@ -86,11 +86,13 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
   let position = getState().selected;
   let pagePosition = getState().page ?? 0;
   let frame = 0;
+  const grab = { x: 0, y: 0, targetX: 0, targetY: 0 };
+
 
   const progress = () => {
     if (prefersReducedMotion.matches) return 1;
     const rect = stage.getBoundingClientRect();
-    const entry = innerHeight * .92;
+    const entry = innerHeight * 1.05;
     const center = Math.max(0, (innerHeight - rect.height) / 2);
     return Math.max(0, Math.min(1, (entry - rect.top) / (entry - center)));
   };
@@ -104,9 +106,11 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     const state = getState();
     const scroll = progress();
     const pose = scrollPose(state.page !== null ? 1 : scroll, 1, ratio, prefersReducedMotion.matches);
-    monitor.rotation.y = pose.yaw;
-    monitor.position.y = pose.y;
-    shadow.position.set(0, pose.y - .025, .05);
+    grab.x = approach(grab.x, grab.targetX);
+    grab.y = approach(grab.y, grab.targetY);
+    monitor.rotation.set(grab.y * .22, pose.yaw + grab.x * .65, -grab.x * .06);
+    monitor.position.set(grab.x * .28, pose.y + grab.y * .12, 0);
+    shadow.position.set(monitor.position.x, pose.y - .025, .05);
     camera.position.fromArray(pose.camera);
     camera.lookAt(0, pose.aimY, .15 * pose.push);
     position = approach(position, state.selected);
@@ -121,7 +125,8 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
       lastScreen = display;
     }
     renderer.render(scene, camera);
-    if (position !== state.selected || pagePosition !== (state.page ?? 0)) invalidate();
+    if (position !== state.selected || pagePosition !== (state.page ?? 0) ||
+      grab.x !== grab.targetX || grab.y !== grab.targetY) invalidate();
   }
 
   function invalidate() {
@@ -151,14 +156,29 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     renderer.dispose();
     renderer.domElement.remove();
   }, { once: true });
+  const pick = (clientX: number, clientY: number) => {
+    const rect = stage.getBoundingClientRect();
+    pointer.set(2 * (clientX - rect.left) / rect.width - 1, 1 - 2 * (clientY - rect.top) / rect.height);
+    ray.setFromCamera(pointer, camera);
+    return ray.intersectObject(monitor, true)[0];
+  };
   return {
     invalidate,
+    target(clientX: number, clientY: number) {
+      const hit = pick(clientX, clientY);
+      if (!hit) return null;
+      return hit.object === screen && lastScreen?.showEvents ? 'screen' : 'cabinet';
+    },
+    moveGrab(dx: number, dy: number) {
+      const scale = Math.max(100, stage.clientHeight * .34);
+      grab.targetX = Math.max(-1, Math.min(1, dx / scale));
+      grab.targetY = Math.max(-1, Math.min(1, dy / scale));
+      invalidate();
+    },
     hit(clientX: number, clientY: number) {
       if (!lastScreen?.showEvents) return null;
-      const rect = stage.getBoundingClientRect();
-      pointer.set(2 * (clientX - rect.left) / rect.width - 1, 1 - 2 * (clientY - rect.top) / rect.height);
-      ray.setFromCamera(pointer, camera);
-      return ray.intersectObject(screen)[0]?.uv ?? null;
+      const hit = pick(clientX, clientY);
+      return hit?.object === screen ? hit.uv ?? null : null;
     },
   };
 }

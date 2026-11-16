@@ -4,10 +4,10 @@ export function scrollPose(progress: number, turns: number, aspect: number, redu
     return t * t * (3 - 2 * t);
   };
   const entry = ease(0, .48);
-  const rotation = ease(.025, .51);
-  const push = ease(.51, .93);
+  const rotation = ease(0, .66);
+  const push = ease(.63, .98);
   const figureDistance = 9.25 * Math.max(1, .95 / aspect);
-  const screenDistance = Math.max(5.7, 6.15 / aspect);
+  const screenDistance = Math.max(5.24, 5.85 / aspect);
   const mix = (a: number, b: number) => a + (b - a) * push;
   return {
     y: reducedMotion ? 0 : -1.35 * (1 - entry),

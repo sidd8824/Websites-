@@ -6,14 +6,14 @@
 
 .crt-events__stage {
   position: relative;
-  height: clamp(21rem, 60vw, 43rem);
+  height: clamp(22rem, 62vw, 45rem);
   max-height: 77svh;
   touch-action: pan-y pinch-zoom;
   overscroll-behavior-x: contain;
   cursor: grab;
 }
 
-.crt-events__stage:active { cursor: grabbing; }
+.crt-events__stage[data-grabbing] { cursor: grabbing; }
 .crt-events__stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 
 .crt-events__fallback {
