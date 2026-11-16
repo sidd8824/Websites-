@@ -65,11 +65,6 @@ export default function AboutSection() {
       aria-label="About B/Stack Section"
       data-cursor="pencil"
     >
-      {/* Rotated vertical line: "the tech club of Bosscoder School of Technology" */}
-      <div className="hidden lg:block absolute left-8 top-1/3 -rotate-90 origin-left font-mono text-xs tracking-widest text-[#A7A3C7]/70 uppercase pointer-events-none">
-        — The tech club of Bosscoder School of Technology
-      </div>
-
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         {/* Anti-design broken collage statement */}
         <div className="relative max-w-4xl mx-auto my-12">
