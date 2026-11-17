@@ -94,6 +94,11 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
   const ray = new Raycaster();
   const pointer = new Vector2();
   const local = new Vector3();
+  const keyCenters = { previous: -.15, select: .066, next: .28, power: 1.28 };
+  const cabinetKeys = Object.entries(keyCenters).map(([key, x]) => ({
+    button: stage.querySelector<HTMLButtonElement>(`[data-crt-key="${key}"]`),
+    x,
+  }));
   let lastScreen: ScreenState | undefined;
   let position = getState().selected;
   let pagePosition = getState().page ?? 0;
@@ -159,6 +164,12 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
       lastScreen = display;
     }
     renderer.render(scene, camera);
+    for (const { button, x } of cabinetKeys) {
+      if (!button) continue;
+      local.set(x, .748, 1.49).applyMatrix4(monitor.matrixWorld).project(camera);
+      button.style.left = `${(local.x + 1) * 50}%`;
+      button.style.top = `${(1 - local.y) * 50}%`;
+    }
     if (position !== state.selected || pagePosition !== (state.page ?? 0) ||
       grab.x !== grab.targetX || grab.y !== grab.targetY || entrance !== entranceTarget ||
       focus !== focusTarget) invalidate();

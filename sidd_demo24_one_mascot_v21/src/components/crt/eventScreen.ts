@@ -139,7 +139,7 @@ export function drawEventScreen(ctx: CanvasRenderingContext2D, state: ScreenStat
   ctx.beginPath();
   ctx.rect(62, 58, 900, 652);
   ctx.clip();
-  text(ctx, page === null ? 'B/STACK  /  UPCOMING EVENTS' : '‹ ALL EVENTS', 72, 106, 23, color);
+  text(ctx, !showEvents ? 'B/STACK  /  UPCOMING EVENTS' : page === null ? '‹ UPCOMING EVENTS' : '‹ ALL EVENTS', 72, 106, 23, color);
   if (showEvents) {
     ctx.textAlign = 'right';
     text(ctx, `${selected + 1} / ${events.length}`, 950, 106, 21, MUTED);

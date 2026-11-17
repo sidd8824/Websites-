@@ -41,50 +41,43 @@
 .crt-events__fallback-title { font: 700 clamp(1.3rem, 4vw, 2.5rem)/1.12 Georgia, serif; }
 .crt-events__signal { font: .8rem ui-monospace, monospace; color: #b0d7b9; }
 
-.crt-events__controls { position: relative; }
-.crt-events__status { text-align: center; }
-.crt-events__status p { margin: 0; }
-.crt-events__buttons { display: flex; justify-content: center; gap: .65rem; align-items: center; flex-wrap: wrap; }
-.crt-events__buttons button {
-  min-width: 44px;
+.crt-events__keys { display: none; }
+
+.crt-events__stage[data-display="ready"] .crt-events__keys {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  pointer-events: none;
+}
+
+.crt-events__stage[data-display="ready"] .crt-events__keys button {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  transform: translate(-50%, -50%);
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: transparent;
+  font-size: 0;
+}
+
+.crt-events__keys button:focus-visible { outline: 2px solid #c3e5aa; outline-offset: 3px; }
+
+.crt-events__stage[data-display="fallback"] .crt-events__keys {
+  position: absolute;
+  inset: auto 0 .5rem;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: .45rem;
+}
+
+.crt-events__stage[data-display="fallback"] .crt-events__keys button {
   min-height: 44px;
+  padding: .4rem .65rem;
+  border: 1px solid #c6d8ce65;
   border-radius: .5rem;
-  border: 1px solid transparent;
-  display: grid;
-  place-items: center;
-  color: inherit;
-  cursor: pointer;
 }
-.crt-events__buttons button:hover:enabled { background: #263f39; }
-.crt-events__buttons button:disabled { opacity: .42; cursor: default; }
-.crt-events__buttons button:focus-visible { outline: 2px solid #c3e5aa; outline-offset: 3px; }
-.crt-events__buttons button.crt-events__open {
-  padding-inline: 1rem;
-  color: #d9efc9;
-  font: 700 1.05rem Georgia, serif;
-}
-
-
-@media (min-width: 641px) {
-  .crt-events__detail-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-}
-@media (max-width: 640px) {
-  .crt-events__status .crt-events__detail-text {
-    margin: 0 auto .65rem;
-    max-width: 32rem;
-    font-size: .875rem;
-    color: #dde8de;
-  }
-}
-
-.crt-events__buttons button.crt-events__return {
-  min-height: 44px;
-  padding: 0 .65rem;
-  color: #c6d8ce;
-  font: .78rem ui-monospace, monospace;
-  text-decoration: underline;
-  text-underline-offset: .25em;
-  cursor: pointer;
-}
-.crt-events__return:hover { color: #eef2e7; }
-.crt-events__return:focus-visible { outline: 2px solid #c3e5aa; outline-offset: 3px; }
+.crt-events__stage[data-display="fallback"] .crt-events__keys button:disabled { opacity: .45; }

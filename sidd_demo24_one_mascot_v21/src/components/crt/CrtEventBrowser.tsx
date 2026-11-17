@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Power } from 'lucide-react';
 import type { ClubEvent } from '../../data/club';
 import type { mountMonitor } from './mountMonitor';
 import type { ScreenState } from './eventScreen';
@@ -142,7 +141,7 @@ export default function CrtEventBrowser({ events }: Props) {
           advance(e.key === 'ArrowLeft' ? -1 : 1);
         }
       }}>
-      <div ref={stage} className="crt-events__stage" data-lenis-prevent-horizontal
+      <div ref={stage} className="crt-events__stage" data-lenis-prevent-horizontal data-display={load}
         onPointerDown={e => {
           if (!e.isPrimary || e.button !== 0) return;
           const mode = monitor.current?.hit(e.clientX, e.clientY)?.kind;
@@ -178,7 +177,7 @@ export default function CrtEventBrowser({ events }: Props) {
           monitor.current?.moveGrab(0, 0);
         }}
         onClick={e => {
-          if (performance.now() < suppressClick.current) return;
+          if (e.target instanceof HTMLButtonElement || performance.now() < suppressClick.current) return;
           const hit = monitor.current?.hit(e.clientX, e.clientY);
           if (!hit) return;
           if (hit.kind === 'power') { setPowered(value => !value); return; }
@@ -192,6 +191,8 @@ export default function CrtEventBrowser({ events }: Props) {
           if (detail) {
             if (y < .20 && x < .35) toggle();
             if (y > .80 && x > .74) advance(x < .86 ? -1 : 1);
+          } else if (y < .20 && x < .48) {
+            resetMonitor();
           } else if (y > .20 && y < .78) {
             if (x > .35 && x < .65) toggle();
             else advance(x < .5 ? -1 : 1);
@@ -205,33 +206,26 @@ export default function CrtEventBrowser({ events }: Props) {
             {detail && page === 1 && <p>{event.location}</p>}
           </div>
         )}
-      </div>
-      <div className="crt-events__controls">
-        <div className="crt-events__status" aria-live="polite" aria-atomic="true">
-          <p className="sr-only">{!powered ? 'Monitor off' : browsing ? event.title : 'Upcoming events'}</p>
-          <p className="sr-only">{!powered ? '' : !browsing ? 'Scroll sideways to browse events' : detail ? sectionName : `${index + 1} / ${events.length} · Scroll sideways or drag across the screen`}</p>
-          {powered && detail && <p className="crt-events__detail-text">{page === 0 ? event.note : `${event.dateStr}. ${event.location}`}</p>}
-        </div>
-        <div className="crt-events__buttons">
-          <button type="button" aria-label={detail ? 'Previous detail' : 'Previous event'}
-            disabled={!powered || !browsing || (detail ? page === 0 : index === 0)} onClick={() => advance(-1)}><ArrowLeft size={17} /></button>
-          <button ref={openButton} type="button" className="crt-events__open" onClick={toggle} disabled={!powered}>
+        <div className="crt-events__keys" role="group" aria-label="Monitor buttons">
+          <button type="button" data-crt-key="previous"
+            aria-label={detail ? 'Previous detail' : 'Previous event'}
+            disabled={!powered || (browsing && (detail ? page === 0 : index === 0))}
+            onClick={() => advance(-1)}>Previous</button>
+          <button ref={openButton} type="button" data-crt-key="select" onClick={toggle} disabled={!powered}>
             {!browsing ? 'Browse events' : detail ? 'Back to events' : 'Open event'}
           </button>
-          <button type="button" aria-label={detail ? 'Next detail' : 'Next event'}
-            disabled={!powered || !browsing || (detail ? page === 1 : index === events.length - 1)} onClick={() => advance(1)}><ArrowRight size={17} /></button>
-          <button type="button" aria-label={powered ? 'Turn monitor off' : 'Turn monitor on'}
-            onClick={() => setPowered(value => !value)}><Power size={17} /></button>
-          {browsing && (
-            <button type="button" className="crt-events__return"
-              onClick={() => {
-                resetMonitor();
-                requestAnimationFrame(() => openButton.current?.focus({ preventScroll: true }));
-              }}>
-              Back to Upcoming events
-            </button>
-          )}
+          <button type="button" data-crt-key="next"
+            aria-label={detail ? 'Next detail' : 'Next event'}
+            disabled={!powered || (browsing && (detail ? page === 1 : index === events.length - 1))}
+            onClick={() => advance(1)}>Next</button>
+          <button type="button" data-crt-key="power"
+            onClick={() => setPowered(value => !value)}>{powered ? 'Turn monitor off' : 'Turn monitor on'}</button>
         </div>
+      </div>
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        <p>{!powered ? 'Monitor off' : browsing ? event.title : 'Upcoming events'}</p>
+        {powered && <p>{!browsing ? 'Scroll sideways to browse events' : detail ? sectionName : `${index + 1} / ${events.length} · Scroll sideways or drag across the screen`}</p>}
+        {powered && detail && <p>{page === 0 ? event.note : `${event.dateStr}. ${event.location}`}</p>}
       </div>
     </section>
   );
