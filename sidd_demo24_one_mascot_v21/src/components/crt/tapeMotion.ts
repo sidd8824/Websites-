@@ -20,7 +20,7 @@ export function tapePose(offset: number, hover = 0) {
     y: 356 + distance * 34 - emphasis * 9 - hover * 10,
     rotation: offset * .19 * (1 - hover * .12),
     scale: 1 - Math.min(.34, distance * .145) + emphasis * .06 + hover * .025,
-    alpha: Math.min(1, .23 + .77 * emphasis + .10 * hover),
+    alpha: Math.min(1, .58 + .42 * emphasis + .10 * hover),
   };
 }
 

@@ -35,18 +35,17 @@ export function createGlassMaterial(map: Texture) {
           float tracking = exp(-trackingOffset * trackingOffset);
           float shift = (tubeNoise(vec2(row, 4.)) - .38) * .033 * tracking * crtInterference;
           curved.x += shift * crtDirection;
-          vec2 fringe = vec2(.0008 + crtInterference * tracking * .0045, 0.);
+          vec2 fringe = vec2(crtInterference * tracking * .0045, 0.);
           vec3 image = vec3(texture2D(map, curved + fringe).r, texture2D(map, curved).g,
             texture2D(map, curved - fringe).b);
           float border = max(abs(curved.x - .5), abs(curved.y - .5));
-          float falloff = 1. - .55 * smoothstep(.23, .69, length(centered));
-          float lines = .95 + .05 * cos(curved.y * 6.2831853 * 155.);
-          float grain = tubeNoise(floor(curved * vec2(640., 440.))) * .009;
-          float reflectionOffset = (centered.y + .36 + centered.x * .06) * 14.;
-          float bloom = exp(-reflectionOffset * reflectionOffset) * .012;
-          float edge = 1. - smoothstep(.466, .51, border);
-          diffuseColor.rgb *= (image * lines * falloff + grain + bloom
-            + tracking * crtInterference * .025) * edge + .003;
+          // Keep the printed sleeves sharp; the phosphor texture is drawn behind them.
+          float falloff = 1. - .38 * smoothstep(.43, .71, length(centered));
+          float reflectionOffset = (centered.y + .39 + centered.x * .04) * 24.;
+          float reflection = exp(-reflectionOffset * reflectionOffset) * .018;
+          float edge = 1. - smoothstep(.478, .515, border);
+          diffuseColor.rgb *= (image * falloff + reflection
+            + tracking * crtInterference * .025) * edge + .001;
         #endif
       `);
   };

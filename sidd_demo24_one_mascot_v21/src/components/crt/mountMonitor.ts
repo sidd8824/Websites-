@@ -136,9 +136,12 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
   let viewHeight = 0;
   let verticalGutter = 0;
   const art = document.createElement('canvas');
-  art.width = SCREEN_WIDTH;
-  art.height = SCREEN_HEIGHT;
+  // Supersample the screen artwork so small sleeve type survives the 3D projection.
+  const screenScale = 2;
+  art.width = SCREEN_WIDTH * screenScale;
+  art.height = SCREEN_HEIGHT * screenScale;
   const context = art.getContext('2d')!;
+  context.scale(screenScale, screenScale);
   const texture = new CanvasTexture(art);
   texture.flipY = false;
   texture.colorSpace = SRGBColorSpace;

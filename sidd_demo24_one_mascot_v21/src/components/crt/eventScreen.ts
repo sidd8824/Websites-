@@ -176,11 +176,26 @@ function tape(ctx: CanvasRenderingContext2D, event: ClubEvent, index: number, of
   ctx.textAlign = 'right';
   text(ctx, 'VHS', 97, 165, 14, paper);
   ctx.textAlign = 'left';
-  ctx.fillStyle = isQuad ? '#46493824' : '#e9dfbd35';
-  for (let i = 0; i < 30; i++) {
-    const x = ((i * 83) % 224) - 112;
-    const y = i % 2 ? -178 + (i % 4) : 179 - (i % 4);
-    ctx.fillRect(x, y, 1 + i % 4, .9);
+  // Printed sleeves catch small abrasions along their folds and corners.
+  ctx.fillStyle = paper + '80';
+  for (let i = 0; i < 96; i++) {
+    const x = ((i * 83 + index * 17) % 224) - 112;
+    const y = i % 2 ? -180 + i % 5 : 181 - i % 5;
+    ctx.fillRect(x, y, 1 + i % 5, .6 + i % 2);
+    if (i % 3 === 0) {
+      const side = i % 2 ? -113 : 111;
+      ctx.fillRect(side, ((i * 47) % 356) - 178, 1.2, 1 + i % 6);
+    }
+  }
+  ctx.strokeStyle = paper + '18';
+  ctx.lineWidth = .5;
+  for (let i = 0; i < 7; i++) {
+    const x = ((i * 61 + index * 29) % 190) - 95;
+    const y = ((i * 97) % 320) - 160;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + 12 + i * 3, y + 27 + i * 7);
+    ctx.stroke();
   }
   ctx.restore();
 }
@@ -240,18 +255,59 @@ export interface ScreenState {
   tapeHover?: { index: number; lean: number; amount: number };
 }
 
+let tubeBackground: HTMLCanvasElement | undefined;
+
+function drawTubeBackground(ctx: CanvasRenderingContext2D) {
+  if (!tubeBackground) {
+    // Cache a neutral charcoal tube with fine RGB phosphors and horizontal scanlines.
+    // It is painted before the sleeves and UI so their edges stay clean.
+    tubeBackground = document.createElement('canvas');
+    tubeBackground.width = SCREEN_WIDTH * 2;
+    tubeBackground.height = SCREEN_HEIGHT * 2;
+    const bg = tubeBackground.getContext('2d')!;
+    bg.scale(2, 2);
+    const glow = bg.createRadialGradient(512, 330, 30, 512, 384, 650);
+    glow.addColorStop(0, '#303132');
+    glow.addColorStop(.65, '#252628');
+    glow.addColorStop(1, '#101113');
+    bg.fillStyle = glow;
+    bg.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    const phosphors = ['#ae635c16', '#72a98016', '#667eac16'];
+    for (let x = 0; x < SCREEN_WIDTH; x += 1.5) {
+      phosphors.forEach((ink, channel) => {
+        bg.fillStyle = ink;
+        bg.fillRect(x + channel * .5, 0, .5, SCREEN_HEIGHT);
+      });
+    }
+    bg.fillStyle = '#00000022';
+    for (let y = 0; y < SCREEN_HEIGHT; y += 2) {
+      bg.fillRect(0, y, SCREEN_WIDTH, .5);
+    }
+    // A restrained, deterministic grain avoids a moving haze over the artwork.
+    let seed = 14;
+    for (let i = 0; i < 45000; i++) {
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      const x = (seed & 65535) / 65536 * SCREEN_WIDTH;
+      const y = (seed >>> 16) / 65536 * SCREEN_HEIGHT;
+      bg.fillStyle = i % 2 ? '#ffffff08' : '#0000000d';
+      bg.fillRect(x, y, .5, .5);
+    }
+    const sheen = bg.createLinearGradient(0, 0, 0, SCREEN_HEIGHT);
+    sheen.addColorStop(0, '#ffffff00');
+    sheen.addColorStop(.055, '#ffffff08');
+    sheen.addColorStop(.13, '#ffffff00');
+    sheen.addColorStop(1, '#00000000');
+    bg.fillStyle = sheen;
+    bg.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+  }
+  ctx.drawImage(tubeBackground, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+}
+
 export function drawEventScreen(ctx: CanvasRenderingContext2D, state: ScreenState, photo: HTMLImageElement | null = null) {
   const { events, selected, position, page, pagePosition, showEvents, tapeHover } = state;
   const event = events[selected];
   const color = eventColor(event);
-  const gradient = ctx.createRadialGradient(500, 344, 0, 512, 384, 670);
-  gradient.addColorStop(0, showEvents ? '#25312a' : '#214033');
-  gradient.addColorStop(1, showEvents ? '#090d0b' : '#0a1915');
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-  ctx.fillStyle = showEvents ? '#a6d7b10b' : '#a6d7b116';
-  for (let x = 72; x < 952; x += 48) ctx.fillRect(x, 125, 1, 550);
-  for (let y = 125; y < 675; y += 48) ctx.fillRect(72, y, 880, 1);
+  drawTubeBackground(ctx);
   ctx.save();
   ctx.beginPath();
   ctx.rect(62, 58, 900, 652);
