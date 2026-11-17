@@ -190,9 +190,9 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     const elapsed = prefersReducedMotion.matches ? 1 : Math.min(1, (now - focusMotion.started) / 780);
     const eased = elapsed * elapsed * (3 - 2 * elapsed);
     focus = elapsed === 1 ? focusTarget : focusMotion.from + (focusTarget - focusMotion.from) * eased;
-    const pose = scrollPose(entrance, ratio, focus);
     grab.x = approach(grab.x, grab.targetX);
     grab.y = approach(grab.y, grab.targetY);
+    const pose = scrollPose(entrance, ratio, focus, grab.x, grab.y);
     monitor.rotation.set(grab.y * .22, grab.x * .65, -grab.x * .06);
     monitor.position.set(pose.x + grab.x * .28, grab.y * .12, 0);
     shadow.position.set(monitor.position.x, -.025, .05);
