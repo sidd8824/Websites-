@@ -127,10 +127,13 @@ export function drawEventScreen(ctx: CanvasRenderingContext2D, state: ScreenStat
   const event = events[selected];
   const color = eventColor(event);
   const gradient = ctx.createRadialGradient(500, 344, 0, 512, 384, 670);
-  gradient.addColorStop(0, '#202b24');
-  gradient.addColorStop(1, '#080c0a');
+  gradient.addColorStop(0, '#214033');
+  gradient.addColorStop(1, '#0a1915');
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+  ctx.fillStyle = '#a6d7b116';
+  for (let x = 72; x < 952; x += 48) ctx.fillRect(x, 125, 1, 550);
+  for (let y = 125; y < 675; y += 48) ctx.fillRect(72, y, 880, 1);
   ctx.save();
   ctx.beginPath();
   ctx.rect(62, 58, 900, 652);
