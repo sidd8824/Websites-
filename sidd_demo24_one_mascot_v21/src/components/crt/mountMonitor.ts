@@ -242,7 +242,7 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     position = damp(position, state.position, 135);
     const detailTarget = state.page === null ? 0 : 1;
     detailMix = damp(detailMix, detailTarget, 95);
-    const tapeIndex = state.powered && state.showEvents && state.page === null && tapePointer
+    const tapeIndex = !state.arcade && state.powered && state.showEvents && state.page === null && tapePointer
       ? tapeAt(tapePointer.x, tapePointer.y, position, state.events.length)
       : null;
     if (tapeIndex !== null && tapePointer) {
@@ -275,7 +275,7 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     }
     const tracking = !state.powered || prefersReducedMotion.matches ? 1 : Math.min(1, (now - tuneStarted) / 260);
     glass.setTracking(tracking, tuneDirection);
-    if (!lastScreen || lastScreen.events !== display.events || lastScreen.position !== position ||
+    if (!lastScreen || lastScreen.arcade !== display.arcade || lastScreen.events !== display.events || lastScreen.position !== position ||
       lastScreen.selected !== state.selected || lastScreen.page !== state.page ||
       lastScreen.pagePosition !== pagePosition || lastScreen.detailMix !== detailMix ||
       lastScreen.motion !== motion || lastScreen.showEvents !== display.showEvents ||

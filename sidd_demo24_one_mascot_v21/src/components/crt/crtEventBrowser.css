@@ -83,3 +83,38 @@
   border-radius: .5rem;
 }
 .crt-events__stage[data-display="fallback"] .crt-events__keys button:disabled { opacity: .45; }
+
+.crt-events__arcade-controls {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin-top: -2rem;
+  position: relative;
+  z-index: 2;
+}
+.crt-events__arcade-controls button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: .5rem .9rem;
+  border: 1px solid #9bdbdd55;
+  border-radius: .5rem;
+  background: #071d25;
+  color: #c5eeee;
+  font: .8rem ui-monospace, monospace;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+.crt-events__arcade-controls button:hover { background: #12333e; }
+.crt-events__arcade-controls button:focus-visible,
+.crt-events__stage:focus-visible { outline: 2px solid #9ce7e9; outline-offset: 4px; }
+
+.crt-events__stage canvas.crt-events__arcade-fallback {
+  position: relative;
+  inset: auto;
+  width: min(100%, 52rem);
+  height: auto;
+  aspect-ratio: 4 / 3;
+  border-radius: 1rem;
+  pointer-events: auto;
+}
