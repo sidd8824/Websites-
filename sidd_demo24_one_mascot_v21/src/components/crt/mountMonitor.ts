@@ -5,6 +5,7 @@ import {
 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { drawEventScreen, SCREEN_HEIGHT, SCREEN_WIDTH, type ScreenState } from './eventScreen';
+import { createPushRobot } from './pushRobot';
 import { scrollPose } from './scrollPose';
 import modelUrl from './relay-14.glb?url';
 
@@ -41,7 +42,8 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
   renderer.domElement.setAttribute('aria-hidden', 'true');
   stage.append(renderer.domElement);
   const scene = new Scene();
-  scene.add(monitor);
+  const pusher = createPushRobot();
+  scene.add(monitor, pusher.robot);
   scene.add(new HemisphereLight(0xf8f1e0, 0x4c6470, 1.9));
   const key = new DirectionalLight(0xffe2c2, 2.25);
   key.position.set(-3, 6, 5);
@@ -64,7 +66,9 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     new MeshBasicMaterial({ map: shadowMap, transparent: true, depthWrite: false }),
   );
   shadow.rotation.x = -Math.PI / 2;
-  scene.add(shadow);
+  const robotShadow = new Mesh(new PlaneGeometry(1.8, 1.3), shadow.material);
+  robotShadow.rotation.x = -Math.PI / 2;
+  scene.add(shadow, robotShadow);
 
   const camera = new PerspectiveCamera(38, 1, .1, 50);
   const art = document.createElement('canvas');
@@ -86,13 +90,15 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
   let position = getState().selected;
   let pagePosition = getState().page ?? 0;
   let frame = 0;
+  let entrance = 0;
+  let focus = 0;
   const grab = { x: 0, y: 0, targetX: 0, targetY: 0 };
 
 
   const progress = () => {
     if (prefersReducedMotion.matches) return 1;
     const rect = stage.getBoundingClientRect();
-    const entry = innerHeight * 1.05;
+    const entry = innerHeight * .98;
     const center = Math.max(0, (innerHeight - rect.height) / 2);
     return Math.max(0, Math.min(1, (entry - rect.top) / (entry - center)));
   };
@@ -104,19 +110,25 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     const ratio = stage.clientWidth / stage.clientHeight;
     if (!Number.isFinite(ratio) || ratio <= 0) return;
     const state = getState();
-    const scroll = progress();
-    const pose = scrollPose(state.page !== null ? 1 : scroll, 1, ratio, prefersReducedMotion.matches);
+    const entranceTarget = state.showEvents ? 1 : progress();
+    entrance = approach(entrance, entranceTarget);
+    const focusTarget = state.showEvents && entrance >= .97 ? 1 : 0;
+    focus = approach(focus, focusTarget);
+    const pose = scrollPose(entrance, ratio, focus);
     grab.x = approach(grab.x, grab.targetX);
     grab.y = approach(grab.y, grab.targetY);
-    monitor.rotation.set(grab.y * .22, pose.yaw + grab.x * .65, -grab.x * .06);
-    monitor.position.set(grab.x * .28, pose.y + grab.y * .12, 0);
-    shadow.position.set(monitor.position.x, pose.y - .025, .05);
-    camera.position.fromArray(pose.camera);
-    camera.lookAt(0, pose.aimY, .15 * pose.push);
+    monitor.rotation.set(grab.y * .22, grab.x * .65, -grab.x * .06);
+    monitor.position.set(pose.x + grab.x * .28, grab.y * .12, 0);
+    shadow.position.set(monitor.position.x, -.025, .05);
+    pusher.robot.position.set(pose.x - 2.48 - 3.15 * focus, 0, .69);
+    pusher.pose(pose.travel, prefersReducedMotion.matches, focus);
+    robotShadow.position.set(pusher.robot.position.x - .18, -.022, .69);
+    camera.position.set(pose.cameraX, pose.cameraY, pose.cameraZ);
+    camera.lookAt(pose.aimX, pose.aimY, pose.aimZ);
     position = approach(position, state.selected);
     if (lastScreen?.page === null && state.page !== null) pagePosition = state.page;
     pagePosition = approach(pagePosition, state.page ?? 0);
-    const display = { ...state, position, pagePosition, showEvents: scroll >= .87 || state.page !== null };
+    const display = { ...state, position, pagePosition, showEvents: state.showEvents && focus > .38 };
     if (!lastScreen || lastScreen.events !== display.events || lastScreen.position !== position ||
       lastScreen.selected !== state.selected || lastScreen.page !== state.page ||
       lastScreen.pagePosition !== pagePosition || lastScreen.showEvents !== display.showEvents) {
@@ -126,7 +138,8 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     }
     renderer.render(scene, camera);
     if (position !== state.selected || pagePosition !== (state.page ?? 0) ||
-      grab.x !== grab.targetX || grab.y !== grab.targetY) invalidate();
+      grab.x !== grab.targetX || grab.y !== grab.targetY || entrance !== entranceTarget ||
+      focus !== focusTarget) invalidate();
   }
 
   function invalidate() {
@@ -150,6 +163,8 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     window.removeEventListener('resize', invalidate);
     prefersReducedMotion.removeEventListener('change', invalidate);
     disposeModel();
+    pusher.dispose();
+    robotShadow.geometry.dispose();
     shadow.geometry.dispose();
     shadow.material.dispose();
     shadowMap.dispose();
@@ -167,7 +182,7 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     target(clientX: number, clientY: number) {
       const hit = pick(clientX, clientY);
       if (!hit) return null;
-      return hit.object === screen && lastScreen?.showEvents ? 'screen' : 'cabinet';
+      return hit.object === screen ? 'screen' : 'cabinet';
     },
     moveGrab(dx: number, dy: number) {
       const scale = Math.max(100, stage.clientHeight * .34);
@@ -176,7 +191,6 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
       invalidate();
     },
     hit(clientX: number, clientY: number) {
-      if (!lastScreen?.showEvents) return null;
       const hit = pick(clientX, clientY);
       return hit?.object === screen ? hit.uv ?? null : null;
     },

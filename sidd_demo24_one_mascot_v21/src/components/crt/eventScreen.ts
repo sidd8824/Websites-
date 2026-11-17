@@ -148,6 +148,7 @@ export function drawEventScreen(ctx: CanvasRenderingContext2D, state: ScreenStat
   if (!showEvents) {
     text(ctx, 'Upcoming', 100, 358, 104, PAPER, true);
     text(ctx, 'events', 100, 461, 104, PAPER, true);
+    text(ctx, 'SCROLL SIDEWAYS TO BROWSE  ›', 106, 602, 26, MUTED);
   } else if (page === null) {
     events.map((item, index) => ({ item, index, offset: index - position }))
       .sort((a, b) => Math.abs(b.offset) - Math.abs(a.offset))

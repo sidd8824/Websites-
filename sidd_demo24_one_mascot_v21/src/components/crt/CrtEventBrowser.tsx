@@ -13,25 +13,27 @@ export default function CrtEventBrowser({ events }: Props) {
   const stage = useRef<HTMLDivElement>(null);
   const monitor = useRef<Awaited<ReturnType<typeof mountMonitor>> | null>(null);
   const [selected, setSelected] = useState(0);
+  const [browsing, setBrowsing] = useState(false);
   const [page, setPage] = useState<number | null>(null);
   const [load, setLoad] = useState<'waiting' | 'ready' | 'fallback'>('waiting');
   const index = Math.min(selected, Math.max(0, events.length - 1));
   const event = events[index];
-  const state = useRef<ScreenState>({ events, selected: index, page, position: index, pagePosition: page ?? 0, showEvents: false });
+  const state = useRef<ScreenState>({ events, selected: index, page, position: index, pagePosition: page ?? 0, showEvents: browsing });
   const gesture = useRef<{ x: number; y: number; id: number; mode: 'screen' | 'cabinet' } | null>(null);
   const suppressClick = useRef(0);
   const dispatch = useRef<(step: number) => void>(() => {});
 
   function advance(step: number) {
+    if (!browsing) { setBrowsing(true); return; }
     if (page === null) setSelected(Math.max(0, Math.min(events.length - 1, index + step)));
     else setPage(Math.max(0, Math.min(1, page + step)));
   }
 
   useEffect(() => {
-    state.current = { events, selected: index, page, position: index, pagePosition: page ?? 0, showEvents: false };
+    state.current = { events, selected: index, page, position: index, pagePosition: page ?? 0, showEvents: browsing };
     dispatch.current = advance;
     monitor.current?.invalidate();
-  }, [events, index, page]);
+  }, [events, index, page, browsing]);
 
   useEffect(() => {
     const element = stage.current;
@@ -82,7 +84,10 @@ export default function CrtEventBrowser({ events }: Props) {
   }, [Boolean(event)]);
 
   if (!event) return null;
-  const toggle = () => setPage(current => current === null ? 0 : null);
+  const toggle = () => {
+    if (!browsing) setBrowsing(true);
+    else setPage(current => current === null ? 0 : null);
+  };
   const detail = page !== null;
   const sectionName = page === 0 ? 'Overview' : 'Date & location';
   return (
@@ -133,6 +138,7 @@ export default function CrtEventBrowser({ events }: Props) {
           if (performance.now() < suppressClick.current) return;
           const hit = monitor.current?.hit(e.clientX, e.clientY);
           if (!hit) return;
+          if (!browsing) { setBrowsing(true); return; }
           if (detail) {
             if (hit.y < .20 && hit.x < .35) toggle();
             if (hit.y > .80 && hit.x > .74) advance(hit.x < .86 ? -1 : 1);
@@ -143,27 +149,27 @@ export default function CrtEventBrowser({ events }: Props) {
         }}>
         {load !== 'ready' && (
           <div className="crt-events__fallback">
-            <p className="crt-events__signal">{load === 'waiting' ? 'TUNING EVENT CHANNEL' : event.vertical}</p>
-            <p className="crt-events__fallback-title">{event.title}</p>
-            <p>{detail && page === 0 ? event.note : event.dateStr}</p>
+            <p className="crt-events__signal">{browsing ? event.vertical : 'B/STACK EVENTS'}</p>
+            <p className="crt-events__fallback-title">{browsing ? event.title : 'Upcoming events'}</p>
+            <p>{!browsing ? 'Scroll sideways to browse' : detail && page === 0 ? event.note : event.dateStr}</p>
             {detail && page === 1 && <p>{event.location}</p>}
           </div>
         )}
       </div>
       <div className="crt-events__controls">
         <div className="crt-events__status" aria-live="polite" aria-atomic="true">
-          <p className="sr-only">{event.title}</p>
-          <p className="sr-only">{detail ? sectionName : `${index + 1} / ${events.length} · Scroll sideways or drag across the screen`}</p>
+          <p className="sr-only">{browsing ? event.title : 'Upcoming events'}</p>
+          <p className="sr-only">{!browsing ? 'Scroll sideways to browse events' : detail ? sectionName : `${index + 1} / ${events.length} · Scroll sideways or drag across the screen`}</p>
           {detail && <p className="crt-events__detail-text">{page === 0 ? event.note : `${event.dateStr}. ${event.location}`}</p>}
         </div>
         <div className="crt-events__buttons">
           <button type="button" aria-label={detail ? 'Previous detail' : 'Previous event'}
-            disabled={detail ? page === 0 : index === 0} onClick={() => advance(-1)}><ArrowLeft size={17} /></button>
+            disabled={!browsing || (detail ? page === 0 : index === 0)} onClick={() => advance(-1)}><ArrowLeft size={17} /></button>
           <button type="button" className="crt-events__open" onClick={toggle}>
-            {detail ? 'Back to events' : 'Open event'}
+            {!browsing ? 'Browse events' : detail ? 'Back to events' : 'Open event'}
           </button>
           <button type="button" aria-label={detail ? 'Next detail' : 'Next event'}
-            disabled={detail ? page === 1 : index === events.length - 1} onClick={() => advance(1)}><ArrowRight size={17} /></button>
+            disabled={!browsing || (detail ? page === 1 : index === events.length - 1)} onClick={() => advance(1)}><ArrowRight size={17} /></button>
         </div>
       </div>
     </section>

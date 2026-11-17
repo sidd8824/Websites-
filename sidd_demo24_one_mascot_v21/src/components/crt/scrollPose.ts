@@ -1,20 +1,19 @@
-export function scrollPose(progress: number, turns: number, aspect: number, reducedMotion = false) {
-  const ease = (from: number, to: number) => {
-    const t = Math.min(1, Math.max(0, (progress - from) / (to - from)));
-    return t * t * (3 - 2 * t);
-  };
-  const entry = ease(0, .48);
-  const rotation = ease(0, .66);
-  const push = ease(.63, .98);
-  const figureDistance = 9.25 * Math.max(1, .95 / aspect);
-  const screenDistance = Math.max(5.24, 5.85 / aspect);
-  const mix = (a: number, b: number) => a + (b - a) * push;
+import { MathUtils } from 'three';
+
+export function scrollPose(progress: number, aspect: number, focus: number) {
+  const travel = MathUtils.smoothstep(progress, 0, 1);
+  const cabinetDistance = Math.max(6.22, 9.65 / aspect);
+  const entranceDistance = cabinetDistance + 2.35;
+  const focusDistance = 1.43 + Math.max(3.68, 4.10 / aspect);
+  const restDistance = MathUtils.lerp(entranceDistance, cabinetDistance, travel);
   return {
-    y: reducedMotion ? 0 : -1.35 * (1 - entry),
-    yaw: reducedMotion ? 0 : .44 * (1 - rotation) + 2 * Math.PI * turns * rotation - .19 * push,
-    camera: [mix(.40, .22), mix(2.9, 2.13), mix(figureDistance, 1.42 + screenDistance)],
-    aimY: mix(1.63, 1.72),
-    entry,
-    push,
+    travel,
+    x: MathUtils.lerp(-2.6, 0, travel),
+    cameraX: MathUtils.lerp(-.62, 0, focus),
+    cameraY: MathUtils.lerp(2.42, 1.98, focus),
+    cameraZ: MathUtils.lerp(restDistance, focusDistance, focus),
+    aimX: MathUtils.lerp(-.65 * (1 - travel) - .48 * MathUtils.smoothstep(1.7 - aspect, 0, .65), 0, focus),
+    aimY: MathUtils.lerp(1.64, 1.98, focus),
+    aimZ: 1.43 * focus,
   };
 }
