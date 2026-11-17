@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ClubEvent } from '../../data/club';
 import type { mountMonitor } from './mountMonitor';
 import type { ScreenState } from './eventScreen';
+import { DETAIL_CHAPTERS, DETAIL_END, detailChapter, detailPosition, sampleDetail } from './detailRail';
 import { docTop, scrollToY } from '../../utils/scroll';
 import './crtEventBrowser.css';
 
@@ -22,7 +23,7 @@ export default function CrtEventBrowser({ events }: Props) {
   const index = Math.min(selected, Math.max(0, events.length - 1));
   const event = events[index];
   const state = useRef<ScreenState>({ events, selected: index, page, position: index, pagePosition: page ?? 0, showEvents: browsing, powered });
-  const gesture = useRef<{ x: number; y: number; id: number; mode: 'screen' | 'cabinet' } | null>(null);
+  const gesture = useRef<{ x: number; y: number; id: number; mode: 'screen' | 'cabinet'; detailStart: number | null } | null>(null);
   const suppressClick = useRef(0);
   const alignUntil = useRef(0);
   const dispatch = useRef<(step: number) => void>(() => {});
@@ -56,7 +57,7 @@ export default function CrtEventBrowser({ events }: Props) {
     if (!powered) return;
     if (!browsing) { beginBrowsing(); return; }
     if (page === null) setSelected(Math.max(0, Math.min(events.length - 1, index + step)));
-    else setPage(Math.max(0, Math.min(1, page + step)));
+    else setPage(detailPosition(step < 0 ? Math.ceil(page) - 1 : Math.floor(page) + 1));
   }
 
   useEffect(() => {
@@ -109,10 +110,15 @@ export default function CrtEventBrowser({ events }: Props) {
       if (!delta) return;
       if (e.cancelable) e.preventDefault();
       e.stopPropagation();
+      const movement = delta * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 320 : 1);
+      if (state.current.page !== null) {
+        setPage(value => value === null ? null : detailPosition(value + movement / 720));
+        return;
+      }
       if (now - stepped < 240) return;
       if (now - last > 200 || Math.sign(total) !== Math.sign(delta)) total = 0;
       last = now;
-      total += delta * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 320 : 1);
+      total += movement;
       if (Math.abs(total) >= 45) {
         dispatch.current(Math.sign(total));
         total = 0;
@@ -146,7 +152,10 @@ export default function CrtEventBrowser({ events }: Props) {
     else setPage(current => current === null ? 0 : null);
   };
   const detail = page !== null;
-  const sectionName = page === 0 ? 'Overview' : 'Date & location';
+  const chapter = detailChapter(page ?? 0);
+  const sectionName = DETAIL_CHAPTERS[chapter];
+  const sample = sampleDetail(event);
+  const excerpt = chapter === 0 ? sample.summary : chapter === 1 ? sample.agenda.join('. ') : sample.field;
   return (
     <section ref={section} className="crt-events" aria-label="Upcoming event browser"
       onKeyDown={e => {
@@ -165,14 +174,22 @@ export default function CrtEventBrowser({ events }: Props) {
           if (!e.isPrimary || e.button !== 0) return;
           const mode = monitor.current?.hit(e.clientX, e.clientY)?.kind;
           if (mode !== 'cabinet' && mode !== 'screen') return;
-          gesture.current = { x: e.clientX, y: e.clientY, id: e.pointerId, mode };
+          gesture.current = { x: e.clientX, y: e.clientY, id: e.pointerId, mode, detailStart: page };
           e.currentTarget.setPointerCapture(e.pointerId);
           e.currentTarget.dataset.grabbing = 'true';
         }}
         onPointerMove={e => {
           const start = gesture.current;
-          if (start?.id !== e.pointerId || start.mode !== 'cabinet') return;
-          monitor.current?.moveGrab(e.clientX - start.x, start.y - e.clientY);
+          if (start?.id !== e.pointerId) return;
+          if (start.mode === 'cabinet') {
+            monitor.current?.moveGrab(e.clientX - start.x, start.y - e.clientY);
+          } else if (powered && start.detailStart !== null) {
+            const dx = start.x - e.clientX;
+            const dy = start.y - e.clientY;
+            if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
+              setPage(detailPosition(start.detailStart + dx / (e.currentTarget.clientWidth * .52)));
+            }
+          }
         }}
         onPointerUp={e => {
           const start = gesture.current;
@@ -184,7 +201,7 @@ export default function CrtEventBrowser({ events }: Props) {
           if (start.mode === 'cabinet') monitor.current?.moveGrab(0, 0);
           if (Math.hypot(dx, dy) > 12) {
             suppressClick.current = performance.now() + 400;
-            if (start.mode === 'screen' && Math.abs(dx) > 28 && Math.abs(dx) > Math.abs(dy)) {
+            if (start.mode === 'screen' && start.detailStart === null && Math.abs(dx) > 28 && Math.abs(dx) > Math.abs(dy)) {
               advance(Math.sign(dx));
             }
           }
@@ -221,8 +238,8 @@ export default function CrtEventBrowser({ events }: Props) {
           <div className="crt-events__fallback">
             <p className="crt-events__signal">{browsing ? event.vertical : 'B/STACK EVENTS'}</p>
             <p className="crt-events__fallback-title">{browsing ? event.title : 'Upcoming events'}</p>
-            <p>{!browsing ? 'Scroll sideways to browse' : detail && page === 0 ? event.note : event.dateStr}</p>
-            {detail && page === 1 && <p>{event.location}</p>}
+            <p>{!browsing ? 'Scroll sideways to browse' : detail ? excerpt : event.dateStr}</p>
+            {detail && chapter === 1 && <p>{event.location}</p>}
           </div>
         )}
         <div className="crt-events__keys" role="group" aria-label="Monitor buttons">
@@ -235,7 +252,7 @@ export default function CrtEventBrowser({ events }: Props) {
           </button>
           <button type="button" data-crt-key="next"
             aria-label={detail ? 'Next detail' : 'Next event'}
-            disabled={!powered || (browsing && (detail ? page === 1 : index === events.length - 1))}
+            disabled={!powered || (browsing && (detail ? page === DETAIL_END : index === events.length - 1))}
             onClick={() => advance(1)}>Next</button>
           <button type="button" data-crt-key="power"
             onClick={() => setPowered(value => !value)}>{powered ? 'Turn monitor off' : 'Turn monitor on'}</button>
@@ -244,7 +261,7 @@ export default function CrtEventBrowser({ events }: Props) {
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         <p>{!powered ? 'Monitor off' : browsing ? event.title : 'Upcoming events'}</p>
         {powered && <p>{!browsing ? 'Scroll sideways to browse events' : detail ? sectionName : `${index + 1} / ${events.length} · Scroll sideways or drag across the screen`}</p>}
-        {powered && detail && <p>{page === 0 ? event.note : `${event.dateStr}. ${event.location}`}</p>}
+        {powered && detail && <p>{excerpt}</p>}
       </div>
     </section>
   );

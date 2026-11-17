@@ -1,4 +1,5 @@
 import type { ClubEvent } from '../../data/club';
+import { DETAIL_CHAPTERS, DETAIL_END, detailChapter, sampleDetail } from './detailRail';
 
 export const SCREEN_WIDTH = 1024;
 export const SCREEN_HEIGHT = 768;
@@ -87,52 +88,54 @@ function tape(ctx: CanvasRenderingContext2D, event: ClubEvent, index: number, of
   ctx.restore();
 }
 
-function eventArtwork(ctx: CanvasRenderingContext2D, event: ClubEvent, index: number, x: number, page: number) {
-  const color = eventColor(event);
-  const gradient = ctx.createLinearGradient(x, 171, x + 390, 579);
-  gradient.addColorStop(0, page === 0 ? '#18241f' : '#dadcc9');
-  gradient.addColorStop(1, page === 0 ? '#0d1310' : '#9da99a');
-  ctx.fillStyle = gradient;
-  ctx.fillRect(x, 167, 390, 406);
-  ctx.strokeStyle = color;
-  ctx.strokeRect(x + .5, 167.5, 389, 405);
-  const ink = page === 0 ? PAPER : '#17241d';
-  text(ctx, 'B/STACK', x + 30, 222, 30, ink, true);
-  text(ctx, event.vertical.toUpperCase(), x + 30, 259, 19, page === 0 ? color : ink);
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(x + 26, 278, 338, 200);
-  ctx.clip();
-  coverArt(ctx, x + 28, 279, 334, 198, index, page === 0 ? color : '#233d2d');
-  ctx.restore();
-  rule(ctx, x + 30, 495, 330, page === 0 ? color : ink);
-  text(ctx, event.missionNumber ?? 'EVENT TAPE', x + 30, 532, 18, ink);
+function framedPhoto(ctx: CanvasRenderingContext2D, photo: HTMLImageElement | null, column: number, row: number,
+  x: number, width: number, caption: string, color: string) {
+  const top = 161;
+  const height = 386;
+  ctx.fillStyle = '#151e18';
+  ctx.fillRect(x, top, width, height);
+  if (photo) {
+    // The source is a three by two contact sheet. Trim the adjacent-cell seams.
+    const cellWidth = photo.naturalWidth / 3;
+    const cellHeight = photo.naturalHeight / 2;
+    const scale = Math.max(width / (cellWidth - 4), height / (cellHeight - 4));
+    const sourceWidth = width / scale;
+    const sourceHeight = height / scale;
+    ctx.drawImage(photo, (column + .5) * cellWidth - sourceWidth / 2,
+      (row + .5) * cellHeight - sourceHeight / 2, sourceWidth, sourceHeight, x, top, width, height);
+  } else {
+    coverArt(ctx, x + 24, top + 48, width - 48, height - 96, column, color);
+  }
+  ctx.strokeStyle = '#d6e2cf42';
+  ctx.strokeRect(x + .5, top + .5, width - 1, height - 1);
+  text(ctx, caption.toUpperCase(), x, 574, 17, MUTED, false, width);
 }
 
-function detailPanel(ctx: CanvasRenderingContext2D, event: ClubEvent, index: number, page: number, offset: number) {
-  if (Math.abs(offset) > 1.1) return;
+function detailTrack(ctx: CanvasRenderingContext2D, event: ClubEvent, pagePosition: number, photo: HTMLImageElement | null) {
   const color = eventColor(event);
+  const sample = sampleDetail(event);
   ctx.save();
-  ctx.translate(offset * 890, 0);
-  const column = page === 0 ? 82 : 510;
-  const width = page === 0 ? 445 : 416;
-  eventArtwork(ctx, event, index, page === 0 ? 540 : 82, page);
-  text(ctx, page === 0 ? '[ EVENT ]' : '[ VENUE ]', column, 193, 18, color);
-  text(ctx, page === 0 ? event.vertical.toUpperCase() : 'DATE & LOCATION', column, 222, 21, MUTED);
-  if (page === 0) {
-    text(ctx, '[ DATE ]', column + 180, 193, 18, color);
-    text(ctx, event.dateStr, column + 180, 222, 19, MUTED, false, 258);
-  }
-
-  const heading = page === 0 ? event.title.replace(/^B\/\w+:\s*/i, '') : event.location;
-  const titleSize = page === 0 ? 49 : 52;
-  ctx.font = `bold ${titleSize}px Georgia, serif`;
-  const rows = lines(ctx, heading, width);
-  rows.slice(0, 4).forEach((row, i) => text(ctx, row, column, 304 + i * 50, titleSize, PAPER, true, width));
-  const body = page === 0 ? event.note : event.dateStr;
-  ctx.font = '22px monospace';
-  lines(ctx, body, width).slice(0, 5)
-    .forEach((row, i) => text(ctx, row, column, 312 + Math.min(rows.length, 4) * 50 + i * 26, 22, MUTED, false, width));
+  ctx.translate(-pagePosition * 720, 0);
+  const textBlock = (x: number, label: string, headline: string, body: string) => {
+    text(ctx, label, x, 200, 18, color);
+    ctx.font = 'bold 44px Georgia, serif';
+    const headingRows = lines(ctx, headline, 350);
+    headingRows.forEach((line, i) => text(ctx, line, x, 294 + i * 46, 44, PAPER, true, 350));
+    ctx.font = '21px monospace';
+    lines(ctx, body, 350).forEach((line, i) =>
+      text(ctx, line, x, 310 + headingRows.length * 46 + i * 26, 21, MUTED, false, 350));
+  };
+  textBlock(82, '[ EVENT OVERVIEW ]', sample.headline, sample.summary);
+  text(ctx, event.dateStr, 82, 232, 17, MUTED, false, 350);
+  framedPhoto(ctx, photo, sample.photo, 0, 480, 566, sample.captions[0], color);
+  text(ctx, '[ SAMPLE SESSION PLAN ]', 1090, 200, 18, color);
+  text(ctx, 'The run of show.', 1090, 294, 43, PAPER, true, 335);
+  sample.agenda.forEach((entry, i) => text(ctx, entry, 1090, 345 + i * 37, 19, MUTED, false, 340));
+  rule(ctx, 1090, 471, 330);
+  ctx.font = '20px monospace';
+  lines(ctx, event.location, 330).forEach((line, i) => text(ctx, line, 1090, 506 + i * 27, 20, MUTED));
+  framedPhoto(ctx, photo, sample.photo, 1, 1470, 530, sample.captions[1], color);
+  textBlock(2055, '[ FIELD NOTES ]', 'Before you arrive.', sample.field);
   ctx.restore();
 }
 
@@ -146,7 +149,7 @@ export interface ScreenState {
   powered: boolean;
 }
 
-export function drawEventScreen(ctx: CanvasRenderingContext2D, state: ScreenState) {
+export function drawEventScreen(ctx: CanvasRenderingContext2D, state: ScreenState, photo: HTMLImageElement | null = null) {
   const { events, selected, position, page, pagePosition, showEvents } = state;
   const event = events[selected];
   const color = eventColor(event);
@@ -187,19 +190,19 @@ export function drawEventScreen(ctx: CanvasRenderingContext2D, state: ScreenStat
     ctx.beginPath();
     ctx.rect(69, 141, 885, 477);
     ctx.clip();
-    detailPanel(ctx, event, selected, 0, -pagePosition);
-    detailPanel(ctx, event, selected, 1, 1 - pagePosition);
+    detailTrack(ctx, event, pagePosition, photo);
     ctx.restore();
     rule(ctx, 72, 621, 878);
-    for (let i = 0; i <= 30; i++) {
-      ctx.fillStyle = i <= pagePosition * 30 ? color : '#46524a';
-      ctx.fillRect(73 + 29.1 * i, 616, 2, 11);
+    for (let i = 0; i <= 60; i++) {
+      ctx.fillStyle = i <= pagePosition / DETAIL_END * 60 ? color : '#46524a';
+      ctx.fillRect(73 + 14.55 * i, 616, 2, 11);
     }
-    text(ctx, page === 0 ? 'OVERVIEW' : 'DATE & LOCATION', 73, 664, 24, color);
+    const chapter = detailChapter(pagePosition);
+    text(ctx, DETAIL_CHAPTERS[chapter].toUpperCase(), 73, 664, 24, color);
     ctx.textAlign = 'right';
-    text(ctx, `‹    ${page + 1} / 2    ›`, 950, 664, 24);
+    text(ctx, `‹    ${chapter + 1} / ${DETAIL_CHAPTERS.length}    ›`, 950, 664, 24);
     ctx.textAlign = 'left';
-    text(ctx, 'SCROLL SIDEWAYS TO DISCOVER', 73, 694, 17, MUTED);
+    text(ctx, 'SAMPLE EVENT DETAILS  /  SCROLL OR DRAG SIDEWAYS', 73, 694, 17, MUTED);
   }
   ctx.restore();
 }

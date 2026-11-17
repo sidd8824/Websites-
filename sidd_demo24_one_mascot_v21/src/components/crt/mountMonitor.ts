@@ -8,6 +8,7 @@ import { drawEventScreen, SCREEN_HEIGHT, SCREEN_WIDTH, type ScreenState } from '
 import { createGlassMaterial, glassUV } from './crtGlass';
 import { createPushRobot } from './pushRobot';
 import { scrollPose } from './scrollPose';
+import eventPhotosUrl from './event-preview-photos.jpg?url';
 import modelUrl from './relay-14.glb?url';
 
 function labelCabinet(controls: NonNullable<ReturnType<Scene['getObjectByName']>>) {
@@ -168,7 +169,16 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
   let entrance = 0;
   let focus = 0;
   let slide = { from: position, to: position, start: 0 };
-  let detailSlide = { from: pagePosition, to: pagePosition, start: 0 };
+  let lastFrameTime: number | undefined;
+  let photos: HTMLImageElement | null = null;
+  const photoSource = new Image();
+  photoSource.onload = () => {
+    if (signal.aborted) return;
+    photos = photoSource;
+    lastScreen = undefined;
+    invalidate();
+  };
+  photoSource.src = eventPhotosUrl;
   let tuneStarted = -Infinity;
   let tuneDirection = 1;
   let focusMotion = { from: 0, to: 0, started: 0 };
@@ -219,9 +229,13 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     position = rail(slide, position, state.selected, now, 440);
     if (lastScreen?.page === null && state.page !== null) {
       pagePosition = state.page;
-      detailSlide = { from: pagePosition, to: pagePosition, start: now };
     }
-    pagePosition = rail(detailSlide, pagePosition, state.page ?? 0, now, 580);
+    const dt = lastFrameTime === undefined ? 16.7 : Math.min(40, now - lastFrameTime);
+    lastFrameTime = now;
+    const pageTarget = state.page ?? 0;
+    pagePosition = prefersReducedMotion.matches || Math.abs(pagePosition - pageTarget) < .001
+      ? pageTarget
+      : pagePosition + (pageTarget - pagePosition) * (1 - Math.exp(-dt / 112));
     if (lastScreen?.powered !== state.powered) {
       screen.material = state.powered ? screenOn : screenOff;
       if (light) {
@@ -231,7 +245,7 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     }
     const display = { ...state, position, pagePosition, showEvents: state.showEvents && focus > .38 };
     if (lastScreen && (display.showEvents !== lastScreen.showEvents ||
-      display.selected !== lastScreen.selected || display.page !== lastScreen.page ||
+      display.selected !== lastScreen.selected || (display.page === null) !== (lastScreen.page === null) ||
       display.powered !== lastScreen.powered)) {
       tuneDirection = Math.sign(display.selected - lastScreen.selected || (display.page ?? -1) - (lastScreen.page ?? -1)) || 1;
       tuneStarted = now;
@@ -242,7 +256,7 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
       lastScreen.selected !== state.selected || lastScreen.page !== state.page ||
       lastScreen.pagePosition !== pagePosition || lastScreen.showEvents !== display.showEvents ||
       lastScreen.powered !== state.powered) {
-      drawEventScreen(context, display);
+      drawEventScreen(context, display, photos);
       texture.needsUpdate = true;
       lastScreen = display;
     }
@@ -280,6 +294,7 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
   window.addEventListener('resize', invalidate);
   prefersReducedMotion.addEventListener('change', invalidate);
   signal.addEventListener('abort', () => {
+    photoSource.onload = null;
     cancelAnimationFrame(frame);
     observer.disconnect();
     window.removeEventListener('scroll', invalidate);

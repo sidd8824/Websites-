@@ -1,6 +1,6 @@
 import { MeshBasicMaterial, type Texture } from 'three';
 
-const CURVATURE = .080;
+const CURVATURE = .103;
 
 export function glassUV(u: number, v: number) {
   const x = u - .5;
@@ -39,12 +39,12 @@ export function createGlassMaterial(map: Texture) {
           vec3 image = vec3(texture2D(map, curved + fringe).r, texture2D(map, curved).g,
             texture2D(map, curved - fringe).b);
           float border = max(abs(curved.x - .5), abs(curved.y - .5));
-          float falloff = 1. - .52 * smoothstep(.23, .69, length(centered));
+          float falloff = 1. - .55 * smoothstep(.23, .69, length(centered));
           float lines = .95 + .05 * cos(curved.y * 6.2831853 * 155.);
           float grain = tubeNoise(floor(curved * vec2(640., 440.))) * .009;
           float reflectionOffset = (centered.y + .36 + centered.x * .06) * 14.;
           float bloom = exp(-reflectionOffset * reflectionOffset) * .012;
-          float edge = 1. - smoothstep(.478, .505, border);
+          float edge = 1. - smoothstep(.466, .51, border);
           diffuseColor.rgb *= (image * lines * falloff + grain + bloom
             + tracking * crtInterference * .025) * edge + .003;
         #endif
