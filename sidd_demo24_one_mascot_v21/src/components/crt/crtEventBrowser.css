@@ -1,5 +1,5 @@
 .crt-events {
-  width: min(100%, 68rem);
+  width: min(100%, 79rem);
   margin: 0 auto;
   color: #eef2e7;
 }
@@ -7,8 +7,8 @@
 .crt-events__stage {
   position: relative;
   isolation: isolate;
-  height: clamp(22rem, 62vw, 45rem);
-  max-height: 77svh;
+  height: clamp(23rem, 68vw, 55rem);
+  max-height: min(89svh, calc(100svh - 80px));
   touch-action: pan-y pinch-zoom;
   overscroll-behavior-x: contain;
   cursor: grab;
