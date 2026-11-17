@@ -13,7 +13,7 @@ export function scrollPose(progress: number, aspect: number, focus: number) {
     cameraY: MathUtils.lerp(2.42, 1.98, focus),
     cameraZ: MathUtils.lerp(restDistance, focusDistance, focus),
     aimX: MathUtils.lerp(-.65 * (1 - travel) - .48 * MathUtils.smoothstep(1.7 - aspect, 0, .65), 0, focus),
-    aimY: MathUtils.lerp(1.64, 1.98, focus),
+    aimY: MathUtils.lerp(1.64, 1.77, focus),
     aimZ: 1.43 * focus,
   };
 }

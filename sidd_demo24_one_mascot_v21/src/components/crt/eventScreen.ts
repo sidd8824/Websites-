@@ -120,6 +120,7 @@ export interface ScreenState {
   page: number | null;
   pagePosition: number;
   showEvents: boolean;
+  powered: boolean;
 }
 
 export function drawEventScreen(ctx: CanvasRenderingContext2D, state: ScreenState) {

@@ -1,7 +1,7 @@
 import {
   ACESFilmicToneMapping, CanvasTexture, DirectionalLight, HemisphereLight,
-  Mesh, MeshBasicMaterial, PerspectiveCamera, PlaneGeometry, Raycaster, Scene, SRGBColorSpace,
-  Texture, Vector2, WebGLRenderer,
+  Mesh, MeshBasicMaterial, MeshStandardMaterial, PerspectiveCamera, PlaneGeometry, Raycaster, Scene, SRGBColorSpace,
+  Texture, Vector2, Vector3, WebGLRenderer,
 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { drawEventScreen, SCREEN_HEIGHT, SCREEN_WIDTH, type ScreenState } from './eventScreen';
@@ -13,7 +13,7 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
   const source = await fetch(modelUrl, { signal });
   if (!source.ok) throw Error('Monitor model could not be loaded');
   const { scene: monitor } = await new GLTFLoader().parseAsync(await source.arrayBuffer(), '');
-  const screen = monitor.getObjectByName('CRT_SCREEN') as Mesh | undefined;
+  const screenCandidate = monitor.getObjectByName('CRT_SCREEN') as Mesh | undefined;
 
   const disposeModel = () => {
     monitor.traverse(object => {
@@ -30,12 +30,14 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
   let renderer: WebGLRenderer;
   try {
     signal.throwIfAborted();
-    if (!screen?.isMesh) throw Error('Monitor screen mesh is missing');
+    if (!screenCandidate?.isMesh) throw Error('Monitor screen mesh is missing');
     renderer = new WebGLRenderer({ alpha: true, antialias: true });
   } catch (error) {
     disposeModel();
     throw error;
   }
+  const screen = screenCandidate;
+
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
   renderer.toneMapping = ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.15;
@@ -81,11 +83,17 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
   texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
   const blank = screen.material;
   for (const material of Array.isArray(blank) ? blank : [blank]) material.dispose();
-  screen.material = new MeshBasicMaterial({ map: texture, toneMapped: false });
+  const screenOn = new MeshBasicMaterial({ map: texture, toneMapped: false });
+  const screenOff = new MeshStandardMaterial({ color: 0x070b0a, roughness: .34 });
+  screen.material = screenOn;
+  const indicator = monitor.getObjectByName('Green_power_indicator') as Mesh | undefined;
+  const light = indicator?.material instanceof MeshStandardMaterial ? indicator.material : undefined;
+  const frontControls = monitor.getObjectByName('Front_controls');
 
   const prefersReducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const ray = new Raycaster();
   const pointer = new Vector2();
+  const local = new Vector3();
   let lastScreen: ScreenState | undefined;
   let position = getState().selected;
   let pagePosition = getState().page ?? 0;
@@ -128,10 +136,18 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     position = approach(position, state.selected);
     if (lastScreen?.page === null && state.page !== null) pagePosition = state.page;
     pagePosition = approach(pagePosition, state.page ?? 0);
+    if (lastScreen?.powered !== state.powered) {
+      screen.material = state.powered ? screenOn : screenOff;
+      if (light) {
+        light.color.setHex(state.powered ? 0xa5f982 : 0x283529);
+        light.emissiveIntensity = state.powered ? .75 : 0;
+      }
+    }
     const display = { ...state, position, pagePosition, showEvents: state.showEvents && focus > .38 };
     if (!lastScreen || lastScreen.events !== display.events || lastScreen.position !== position ||
       lastScreen.selected !== state.selected || lastScreen.page !== state.page ||
-      lastScreen.pagePosition !== pagePosition || lastScreen.showEvents !== display.showEvents) {
+      lastScreen.pagePosition !== pagePosition || lastScreen.showEvents !== display.showEvents ||
+      lastScreen.powered !== state.powered) {
       drawEventScreen(context, display);
       texture.needsUpdate = true;
       lastScreen = display;
@@ -162,7 +178,10 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     window.removeEventListener('scroll', invalidate);
     window.removeEventListener('resize', invalidate);
     prefersReducedMotion.removeEventListener('change', invalidate);
+    screen.material = screenOff;
     disposeModel();
+    screenOn.dispose();
+    texture.dispose();
     pusher.dispose();
     robotShadow.geometry.dispose();
     shadow.geometry.dispose();
@@ -179,11 +198,6 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
   };
   return {
     invalidate,
-    target(clientX: number, clientY: number) {
-      const hit = pick(clientX, clientY);
-      if (!hit) return null;
-      return hit.object === screen ? 'screen' : 'cabinet';
-    },
     moveGrab(dx: number, dy: number) {
       const scale = Math.max(100, stage.clientHeight * .34);
       grab.targetX = Math.max(-1, Math.min(1, dx / scale));
@@ -192,7 +206,17 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     },
     hit(clientX: number, clientY: number) {
       const hit = pick(clientX, clientY);
-      return hit?.object === screen ? hit.uv ?? null : null;
+      if (!hit) return null;
+      if (hit.object === screen && hit.uv) return { kind: 'screen' as const, uv: hit.uv };
+      local.copy(hit.point);
+      monitor.worldToLocal(local);
+      if (hit.object.parent === frontControls && local.y > .66 && local.y < .85) {
+        if (local.x > 1.16 && local.x < 1.40) return { kind: 'power' as const };
+        if (local.x >= -.215 && local.x < -.089) return { kind: 'previous' as const };
+        if (local.x >= -.089 && local.x < .215) return { kind: 'select' as const };
+        if (local.x >= .215 && local.x < .355) return { kind: 'next' as const };
+      }
+      return { kind: 'cabinet' as const };
     },
   };
 }
