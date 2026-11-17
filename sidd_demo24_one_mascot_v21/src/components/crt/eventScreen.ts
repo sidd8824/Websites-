@@ -87,29 +87,52 @@ function tape(ctx: CanvasRenderingContext2D, event: ClubEvent, index: number, of
   ctx.restore();
 }
 
+function eventArtwork(ctx: CanvasRenderingContext2D, event: ClubEvent, index: number, x: number, page: number) {
+  const color = eventColor(event);
+  const gradient = ctx.createLinearGradient(x, 171, x + 390, 579);
+  gradient.addColorStop(0, page === 0 ? '#18241f' : '#dadcc9');
+  gradient.addColorStop(1, page === 0 ? '#0d1310' : '#9da99a');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(x, 167, 390, 406);
+  ctx.strokeStyle = color;
+  ctx.strokeRect(x + .5, 167.5, 389, 405);
+  const ink = page === 0 ? PAPER : '#17241d';
+  text(ctx, 'B/STACK', x + 30, 222, 30, ink, true);
+  text(ctx, event.vertical.toUpperCase(), x + 30, 259, 19, page === 0 ? color : ink);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x + 26, 278, 338, 200);
+  ctx.clip();
+  coverArt(ctx, x + 28, 279, 334, 198, index, page === 0 ? color : '#233d2d');
+  ctx.restore();
+  rule(ctx, x + 30, 495, 330, page === 0 ? color : ink);
+  text(ctx, event.missionNumber ?? 'EVENT TAPE', x + 30, 532, 18, ink);
+}
+
 function detailPanel(ctx: CanvasRenderingContext2D, event: ClubEvent, index: number, page: number, offset: number) {
   if (Math.abs(offset) > 1.1) return;
   const color = eventColor(event);
   ctx.save();
-  ctx.translate(offset * 885, 0);
-  ctx.globalAlpha = Math.max(0, 1 - Math.abs(offset) * .55);
-  text(ctx, page === 0 ? event.vertical.toUpperCase() : 'WHEN & WHERE', 82, 200, 25, color);
-  const heading = page === 0 ? event.title : event.location;
-  ctx.font = 'bold 55px Georgia, serif';
-  const rows = lines(ctx, heading, 478);
-  rows.slice(0, 4).forEach((row, i) => text(ctx, row, 82, 267 + i * 57, 55, PAPER, true, 480));
-  const content = page === 0 ? event.note : event.dateStr;
-  ctx.font = '24px monospace';
-  lines(ctx, content, 470).slice(0, 5)
-    .forEach((row, i) => text(ctx, row, 83, 290 + Math.min(rows.length, 4) * 57 + i * 31, 24, MUTED));
-  ctx.fillStyle = '#1b251f';
-  ctx.fillRect(590, 177, 346, 385);
-  ctx.strokeStyle = color;
-  ctx.strokeRect(590, 177, 346, 385);
-  text(ctx, event.vertical.toUpperCase(), 616, 221, 24, color);
-  coverArt(ctx, 616, 260, 294, 210, index, color);
-  rule(ctx, 616, 505, 294, color);
-  text(ctx, event.missionNumber ?? 'B/STACK EVENTS', 616, 536, 20, MUTED);
+  ctx.translate(offset * 890, 0);
+  const column = page === 0 ? 82 : 510;
+  const width = page === 0 ? 445 : 416;
+  eventArtwork(ctx, event, index, page === 0 ? 540 : 82, page);
+  text(ctx, page === 0 ? '[ EVENT ]' : '[ VENUE ]', column, 193, 18, color);
+  text(ctx, page === 0 ? event.vertical.toUpperCase() : 'DATE & LOCATION', column, 222, 21, MUTED);
+  if (page === 0) {
+    text(ctx, '[ DATE ]', column + 180, 193, 18, color);
+    text(ctx, event.dateStr, column + 180, 222, 19, MUTED, false, 258);
+  }
+
+  const heading = page === 0 ? event.title.replace(/^B\/\w+:\s*/i, '') : event.location;
+  const titleSize = page === 0 ? 49 : 52;
+  ctx.font = `bold ${titleSize}px Georgia, serif`;
+  const rows = lines(ctx, heading, width);
+  rows.slice(0, 4).forEach((row, i) => text(ctx, row, column, 304 + i * 50, titleSize, PAPER, true, width));
+  const body = page === 0 ? event.note : event.dateStr;
+  ctx.font = '22px monospace';
+  lines(ctx, body, width).slice(0, 5)
+    .forEach((row, i) => text(ctx, row, column, 312 + Math.min(rows.length, 4) * 50 + i * 26, 22, MUTED, false, width));
   ctx.restore();
 }
 
@@ -128,11 +151,11 @@ export function drawEventScreen(ctx: CanvasRenderingContext2D, state: ScreenStat
   const event = events[selected];
   const color = eventColor(event);
   const gradient = ctx.createRadialGradient(500, 344, 0, 512, 384, 670);
-  gradient.addColorStop(0, '#214033');
-  gradient.addColorStop(1, '#0a1915');
+  gradient.addColorStop(0, showEvents ? '#25312a' : '#214033');
+  gradient.addColorStop(1, showEvents ? '#090d0b' : '#0a1915');
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-  ctx.fillStyle = '#a6d7b116';
+  ctx.fillStyle = showEvents ? '#a6d7b10b' : '#a6d7b116';
   for (let x = 72; x < 952; x += 48) ctx.fillRect(x, 125, 1, 550);
   for (let y = 125; y < 675; y += 48) ctx.fillRect(72, y, 880, 1);
   ctx.save();
@@ -167,13 +190,16 @@ export function drawEventScreen(ctx: CanvasRenderingContext2D, state: ScreenStat
     detailPanel(ctx, event, selected, 0, -pagePosition);
     detailPanel(ctx, event, selected, 1, 1 - pagePosition);
     ctx.restore();
-    rule(ctx, 72, 622, 878);
+    rule(ctx, 72, 621, 878);
+    for (let i = 0; i <= 30; i++) {
+      ctx.fillStyle = i <= pagePosition * 30 ? color : '#46524a';
+      ctx.fillRect(73 + 29.1 * i, 616, 2, 11);
+    }
     text(ctx, page === 0 ? 'OVERVIEW' : 'DATE & LOCATION', 73, 664, 24, color);
     ctx.textAlign = 'right';
     text(ctx, `‹    ${page + 1} / 2    ›`, 950, 664, 24);
     ctx.textAlign = 'left';
+    text(ctx, 'SCROLL SIDEWAYS TO DISCOVER', 73, 694, 17, MUTED);
   }
   ctx.restore();
-  ctx.fillStyle = '#00000020';
-  for (let y = 0; y < SCREEN_HEIGHT; y += 5) ctx.fillRect(0, y, SCREEN_WIDTH, 1.5);
 }

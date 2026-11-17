@@ -5,6 +5,7 @@ import {
 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { drawEventScreen, SCREEN_HEIGHT, SCREEN_WIDTH, type ScreenState } from './eventScreen';
+import { createGlassMaterial, glassUV } from './crtGlass';
 import { createPushRobot } from './pushRobot';
 import { scrollPose } from './scrollPose';
 import modelUrl from './relay-14.glb?url';
@@ -139,7 +140,8 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
   texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
   const blank = screen.material;
   for (const material of Array.isArray(blank) ? blank : [blank]) material.dispose();
-  const screenOn = new MeshBasicMaterial({ map: texture, toneMapped: false });
+  const glass = createGlassMaterial(texture);
+  const screenOn = glass.material;
   const screenOff = new MeshStandardMaterial({ color: 0x070b0a, roughness: .34 });
   screen.material = screenOn;
   const indicator = monitor.getObjectByName('Green_power_indicator') as Mesh | undefined;
@@ -162,6 +164,10 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
   let frame = 0;
   let entrance = 0;
   let focus = 0;
+  let slide = { from: position, to: position, start: 0 };
+  let detailSlide = { from: pagePosition, to: pagePosition, start: 0 };
+  let tuneStarted = -Infinity;
+  let tuneDirection = 1;
   let focusMotion = { from: 0, to: 0, started: 0 };
   const grab = { x: 0, y: 0, targetX: 0, targetY: 0 };
 
@@ -175,6 +181,12 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
   };
   const approach = (from: number, to: number) =>
     prefersReducedMotion.matches || Math.abs(from - to) < .002 ? to : from + (to - from) * .24;
+
+  function rail(motion: typeof slide, current: number, target: number, now: number, duration: number) {
+    if (motion.to !== target) Object.assign(motion, { from: current, to: target, start: now });
+    const t = prefersReducedMotion.matches ? 1 : Math.min(1, (now - motion.start) / duration);
+    return t === 1 ? target : motion.from + (target - motion.from) * (1 - (1 - t) ** 3);
+  }
 
   function render(now: number) {
     frame = 0;
@@ -201,9 +213,12 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     robotShadow.position.set(pusher.robot.position.x - .18, -.022, .69);
     camera.position.set(pose.cameraX, pose.cameraY, pose.cameraZ);
     camera.lookAt(pose.aimX, pose.aimY, pose.aimZ);
-    position = approach(position, state.selected);
-    if (lastScreen?.page === null && state.page !== null) pagePosition = state.page;
-    pagePosition = approach(pagePosition, state.page ?? 0);
+    position = rail(slide, position, state.selected, now, 440);
+    if (lastScreen?.page === null && state.page !== null) {
+      pagePosition = state.page;
+      detailSlide = { from: pagePosition, to: pagePosition, start: now };
+    }
+    pagePosition = rail(detailSlide, pagePosition, state.page ?? 0, now, 580);
     if (lastScreen?.powered !== state.powered) {
       screen.material = state.powered ? screenOn : screenOff;
       if (light) {
@@ -212,6 +227,14 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
       }
     }
     const display = { ...state, position, pagePosition, showEvents: state.showEvents && focus > .38 };
+    if (lastScreen && (display.showEvents !== lastScreen.showEvents ||
+      display.selected !== lastScreen.selected || display.page !== lastScreen.page ||
+      display.powered !== lastScreen.powered)) {
+      tuneDirection = Math.sign(display.selected - lastScreen.selected || (display.page ?? -1) - (lastScreen.page ?? -1)) || 1;
+      tuneStarted = now;
+    }
+    const tracking = !state.powered || prefersReducedMotion.matches ? 1 : Math.min(1, (now - tuneStarted) / 260);
+    glass.setTracking(tracking, tuneDirection);
     if (!lastScreen || lastScreen.events !== display.events || lastScreen.position !== position ||
       lastScreen.selected !== state.selected || lastScreen.page !== state.page ||
       lastScreen.pagePosition !== pagePosition || lastScreen.showEvents !== display.showEvents ||
@@ -229,7 +252,7 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     }
     if (position !== state.selected || pagePosition !== (state.page ?? 0) ||
       grab.x !== grab.targetX || grab.y !== grab.targetY || entrance !== entranceTarget ||
-      focus !== focusTarget) invalidate();
+      focus !== focusTarget || tracking < 1) invalidate();
   }
 
   function invalidate() {
@@ -281,7 +304,7 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     hit(clientX: number, clientY: number) {
       const hit = pick(clientX, clientY);
       if (!hit) return null;
-      if (hit.object === screen && hit.uv) return { kind: 'screen' as const, uv: hit.uv };
+      if (hit.object === screen && hit.uv) return { kind: 'screen' as const, uv: glassUV(hit.uv.x, hit.uv.y) };
       local.copy(hit.point);
       monitor.worldToLocal(local);
       if (hit.object.parent === frontControls && local.y > .66 && local.y < .85) {
