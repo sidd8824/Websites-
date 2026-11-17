@@ -44,7 +44,7 @@
 .crt-events__controls { position: relative; }
 .crt-events__status { text-align: center; }
 .crt-events__status p { margin: 0; }
-.crt-events__buttons { display: flex; justify-content: center; gap: .65rem; align-items: center; }
+.crt-events__buttons { display: flex; justify-content: center; gap: .65rem; align-items: center; flex-wrap: wrap; }
 .crt-events__buttons button {
   min-width: 44px;
   min-height: 44px;
@@ -76,3 +76,15 @@
     color: #dde8de;
   }
 }
+
+.crt-events__buttons button.crt-events__return {
+  min-height: 44px;
+  padding: 0 .65rem;
+  color: #c6d8ce;
+  font: .78rem ui-monospace, monospace;
+  text-decoration: underline;
+  text-underline-offset: .25em;
+  cursor: pointer;
+}
+.crt-events__return:hover { color: #eef2e7; }
+.crt-events__return:focus-visible { outline: 2px solid #c3e5aa; outline-offset: 3px; }

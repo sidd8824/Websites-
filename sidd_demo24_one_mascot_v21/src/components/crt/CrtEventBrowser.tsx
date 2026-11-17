@@ -11,6 +11,8 @@ interface Props {
 
 export default function CrtEventBrowser({ events }: Props) {
   const stage = useRef<HTMLDivElement>(null);
+  const section = useRef<HTMLElement>(null);
+  const openButton = useRef<HTMLButtonElement>(null);
   const monitor = useRef<Awaited<ReturnType<typeof mountMonitor>> | null>(null);
   const [selected, setSelected] = useState(0);
   const [powered, setPowered] = useState(true);
@@ -23,6 +25,14 @@ export default function CrtEventBrowser({ events }: Props) {
   const gesture = useRef<{ x: number; y: number; id: number; mode: 'screen' | 'cabinet' } | null>(null);
   const suppressClick = useRef(0);
   const dispatch = useRef<(step: number) => void>(() => {});
+
+  function resetMonitor() {
+    setPage(null);
+    setSelected(0);
+    setBrowsing(false);
+    setPowered(true);
+    monitor.current?.moveGrab(0, 0);
+  }
 
   function advance(step: number) {
     if (!powered) return;
@@ -39,7 +49,8 @@ export default function CrtEventBrowser({ events }: Props) {
 
   useEffect(() => {
     const element = stage.current;
-    if (!element || !event) return;
+    const input = section.current;
+    if (!element || !input || !event) return;
     const controller = new AbortController();
     const visibility = new IntersectionObserver(([entry]) => {
       if (!entry.isIntersecting) return;
@@ -59,13 +70,27 @@ export default function CrtEventBrowser({ events }: Props) {
     let total = 0;
     let last = -Infinity;
     let stepped = -Infinity;
+    let returnUntil = -Infinity;
     const onWheel = (e: WheelEvent) => {
-      if (e.ctrlKey || e.metaKey || !state.current.powered) return;
-      const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.shiftKey ? e.deltaY : 0;
+      if (e.ctrlKey || e.metaKey) return;
+      const now = performance.now();
+      const sideways = e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY);
+      if (!sideways && e.deltaY > 0 && (state.current.showEvents || now < returnUntil)) {
+        // Let the return finish before the same wheel gesture carries the page past it.
+        if (e.cancelable) e.preventDefault();
+        e.stopPropagation();
+        if (now >= returnUntil) {
+          total = 0;
+          returnUntil = now + 850;
+          resetMonitor();
+        }
+        return;
+      }
+      if (!sideways || !state.current.powered || now < returnUntil) return;
+      const delta = e.deltaX || e.deltaY;
       if (!delta) return;
       if (e.cancelable) e.preventDefault();
       e.stopPropagation();
-      const now = performance.now();
       if (now - stepped < 240) return;
       if (now - last > 200 || Math.sign(total) !== Math.sign(delta)) total = 0;
       last = now;
@@ -83,19 +108,15 @@ export default function CrtEventBrowser({ events }: Props) {
       lastScroll = y;
       if (!movingDown || (!state.current.showEvents && state.current.powered)) return;
       total = 0;
-      setPage(null);
-      setSelected(0);
-      setBrowsing(false);
-      setPowered(true);
-      monitor.current?.moveGrab(0, 0);
+      resetMonitor();
     };
-    element.addEventListener('wheel', onWheel, { passive: false });
+    input.addEventListener('wheel', onWheel, { passive: false });
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => {
       visibility.disconnect();
       controller.abort();
       monitor.current = null;
-      element.removeEventListener('wheel', onWheel);
+      input.removeEventListener('wheel', onWheel);
       window.removeEventListener('scroll', onScroll);
     };
   }, [Boolean(event)]);
@@ -109,9 +130,13 @@ export default function CrtEventBrowser({ events }: Props) {
   const detail = page !== null;
   const sectionName = page === 0 ? 'Overview' : 'Date & location';
   return (
-    <section className="crt-events" aria-label="Upcoming event browser"
+    <section ref={section} className="crt-events" aria-label="Upcoming event browser"
       onKeyDown={e => {
-        if (e.key === 'Escape' && detail) { e.stopPropagation(); setPage(null); }
+        if (e.key === 'Escape' && browsing) {
+          e.stopPropagation();
+          resetMonitor();
+          openButton.current?.focus({ preventScroll: true });
+        }
         else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
           e.preventDefault();
           advance(e.key === 'ArrowLeft' ? -1 : 1);
@@ -190,13 +215,22 @@ export default function CrtEventBrowser({ events }: Props) {
         <div className="crt-events__buttons">
           <button type="button" aria-label={detail ? 'Previous detail' : 'Previous event'}
             disabled={!powered || !browsing || (detail ? page === 0 : index === 0)} onClick={() => advance(-1)}><ArrowLeft size={17} /></button>
-          <button type="button" className="crt-events__open" onClick={toggle} disabled={!powered}>
+          <button ref={openButton} type="button" className="crt-events__open" onClick={toggle} disabled={!powered}>
             {!browsing ? 'Browse events' : detail ? 'Back to events' : 'Open event'}
           </button>
           <button type="button" aria-label={detail ? 'Next detail' : 'Next event'}
             disabled={!powered || !browsing || (detail ? page === 1 : index === events.length - 1)} onClick={() => advance(1)}><ArrowRight size={17} /></button>
           <button type="button" aria-label={powered ? 'Turn monitor off' : 'Turn monitor on'}
             onClick={() => setPowered(value => !value)}><Power size={17} /></button>
+          {browsing && (
+            <button type="button" className="crt-events__return"
+              onClick={() => {
+                resetMonitor();
+                requestAnimationFrame(() => openButton.current?.focus({ preventScroll: true }));
+              }}>
+              Back to Upcoming events
+            </button>
+          )}
         </div>
       </div>
     </section>

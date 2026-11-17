@@ -100,6 +100,7 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
   let frame = 0;
   let entrance = 0;
   let focus = 0;
+  let focusMotion = { from: 0, to: 0, started: 0 };
   const grab = { x: 0, y: 0, targetX: 0, targetY: 0 };
 
 
@@ -113,7 +114,7 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
   const approach = (from: number, to: number) =>
     prefersReducedMotion.matches || Math.abs(from - to) < .002 ? to : from + (to - from) * .24;
 
-  function render() {
+  function render(now: number) {
     frame = 0;
     const ratio = stage.clientWidth / stage.clientHeight;
     if (!Number.isFinite(ratio) || ratio <= 0) return;
@@ -121,7 +122,12 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     const entranceTarget = state.showEvents ? 1 : progress();
     entrance = approach(entrance, entranceTarget);
     const focusTarget = state.showEvents && entrance >= .97 ? 1 : 0;
-    focus = approach(focus, focusTarget);
+    if (focusMotion.to !== focusTarget) {
+      focusMotion = { from: focus, to: focusTarget, started: now };
+    }
+    const elapsed = prefersReducedMotion.matches ? 1 : Math.min(1, (now - focusMotion.started) / 780);
+    const eased = elapsed * elapsed * (3 - 2 * elapsed);
+    focus = elapsed === 1 ? focusTarget : focusMotion.from + (focusTarget - focusMotion.from) * eased;
     const pose = scrollPose(entrance, ratio, focus);
     grab.x = approach(grab.x, grab.targetX);
     grab.y = approach(grab.y, grab.targetY);
