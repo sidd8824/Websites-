@@ -1,8 +1,10 @@
+import { type PaddleState, PADDLE_WIDTH } from './paddleGames';
 import { type SnakeState, SNAKE_COLUMNS, SNAKE_ROWS } from './snake';
 
 export interface ArcadeScreen {
-  view: 'games' | 'snake';
+  view: 'games' | 'snake' | 'pong' | 'breakout';
   snake: SnakeState;
+  paddle: PaddleState;
 }
 
 export function drawGamepad(ctx: CanvasRenderingContext2D, x: number, y: number, size = 32) {
@@ -60,24 +62,88 @@ export function drawArcadeScreen(ctx: CanvasRenderingContext2D, arcade: ArcadeSc
   ctx.fillRect(72, 125, 878, 1);
 
   if (arcade.view === 'games') {
-    ctx.fillStyle = '#071d25';
-    ctx.fillRect(256, 220, 512, 355);
-    ctx.strokeStyle = '#a5dada66';
-    ctx.strokeRect(256.5, 220.5, 511, 354);
-    ctx.fillStyle = '#a9ba88';
-    ctx.fillRect(384, 250, 256, 128);
-    ctx.fillStyle = '#243421';
-    for (const [x, y] of [[0, 0], [1, 0], [2, 0], [2, -1], [2, -2], [3, -2], [4, -2]]) {
-      ctx.fillRect(430 + x * 24, 331 + y * 24, 21, 21);
-    }
-    ctx.fillRect(574, 283, 12, 12);
+    const choices = [
+      { title: 'SNAKE', detail: 'Eat, grow, wrap around.', color: '#b5ca93' },
+      { title: 'PONG', detail: 'First to five wins.', color: '#b4dbee' },
+      { title: 'BREAKOUT', detail: 'Clear all the bricks.', color: '#e9bb89' },
+    ];
+    choices.forEach((choice, index) => {
+      const x = 94 + index * 292;
+      ctx.fillStyle = '#071d25';
+      ctx.fillRect(x, 220, 252, 355);
+      ctx.strokeStyle = choice.color;
+      ctx.strokeRect(x + .5, 220.5, 251, 354);
+      ctx.fillStyle = choice.color;
+      if (index === 0) {
+        for (const [cx, cy] of [[0, 0], [1, 0], [2, 0], [2, -1], [3, -1]]) ctx.fillRect(x + 61 + cx * 24, 335 + cy * 24, 21, 21);
+        ctx.fillRect(x + 176, 285, 10, 10);
+      } else if (index === 1) {
+        ctx.fillRect(x + 48, 280, 156, 4);
+        ctx.fillRect(x + 48, 360, 156, 4);
+        ctx.fillRect(x + 58, 302, 7, 42);
+        ctx.fillRect(x + 187, 302, 7, 42);
+        ctx.beginPath(); ctx.arc(x + 129, 325, 7, 0, Math.PI * 2); ctx.fill();
+      } else {
+        for (let row = 0; row < 3; row++) for (let col = 0; col < 5; col++) ctx.fillRect(x + 35 + col * 37, 280 + row * 18, 32, 12);
+        ctx.fillRect(x + 95, 364, 64, 6);
+        ctx.beginPath(); ctx.arc(x + 139, 344, 6, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.textAlign = 'center';
+      label(choice.title, x + 126, 437, index === 2 ? 28 : 34, choice.color);
+      label(choice.detail, x + 126, 477, 15);
+      ctx.textAlign = 'left';
+      button('PLAY', x + 38, 511, 176);
+    });
     ctx.textAlign = 'center';
-    label('SNAKE', 512, 438, 44);
-    label('Eat. Grow. Beat your score.', 512, 480, 19);
+    label('CHOOSE A GAME', 512, 656, 18);
+    ctx.restore();
+    return;
+  }
+
+  if (arcade.view !== 'snake') {
+    const game = arcade.paddle;
+    label(game.game.toUpperCase(), 120, 183, 28);
+    ctx.textAlign = 'right';
+    label(game.game === 'pong' ? `YOU ${game.score} : ${game.opponentScore} CPU` : `SCORE ${game.score} · LIVES ${game.lives}`, 600, 183, 19);
     ctx.textAlign = 'left';
-    button('PLAY SNAKE', 374, 511, 276);
-    ctx.textAlign = 'center';
-    label('ARROW KEYS / WASD / TOUCH CONTROLS', 512, 656, 18);
+    ctx.fillStyle = '#07131e';
+    ctx.fillRect(110, 200, 500, 404);
+    ctx.strokeStyle = '#9ed6e866';
+    ctx.strokeRect(120, 210, 480, 384);
+    ctx.save();
+    ctx.translate(120, 210);
+    ctx.fillStyle = '#b4dbee';
+    ctx.fillRect(game.paddle - PADDLE_WIDTH / 2, 350, PADDLE_WIDTH, 8);
+    if (game.game === 'pong') {
+      ctx.fillStyle = '#e9bb89';
+      ctx.fillRect(game.opponent - PADDLE_WIDTH / 2, 26, PADDLE_WIDTH, 8);
+      ctx.fillStyle = '#b4dbee33';
+      for (let x = 0; x < 480; x += 20) ctx.fillRect(x, 190, 10, 2);
+    } else {
+      game.bricks.forEach((alive, index) => {
+        if (!alive) return;
+        ctx.fillStyle = ['#eaa786', '#e9c489', '#afd4a0', '#9cc8eb'][Math.floor(index / 8)];
+        ctx.fillRect(10 + index % 8 * 58, 36 + Math.floor(index / 8) * 26, 54, 20);
+      });
+    }
+    ctx.fillStyle = '#f4eacb';
+    ctx.beginPath(); ctx.arc(game.ball.x, game.ball.y, 6, 0, Math.PI * 2); ctx.fill();
+    if (game.status !== 'running') {
+      ctx.fillStyle = '#07131eec'; ctx.fillRect(20, 128, 440, 130);
+      ctx.textAlign = 'center';
+      label(game.status === 'ready' ? 'READY?' : game.status === 'paused' ? 'PAUSED' : game.status === 'won' ? 'YOU WIN!' : 'GAME OVER', 240, 180, 32);
+      label('ENTER / TAP TO PLAY', 240, 219, 18);
+      ctx.textAlign = 'left';
+    }
+    ctx.restore();
+    label('MOVE PADDLE', 738, 254, 21);
+    button('←', 712, 368, 56, 56);
+    button('→', 844, 368, 56, 56);
+    button(game.status === 'running' ? 'PAUSE' : 'PLAY / RESUME', 710, 510, 192);
+    button('RESTART', 710, 562, 192);
+    button('GAMES', 710, 614, 192);
+    label('LEFT / RIGHT · DRAG TO MOVE', 120, 655, 17);
+    label('SPACE TO PAUSE', 120, 687, 17);
     ctx.restore();
     return;
   }

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPaddleGame, movePaddle, stepPaddleGame } from './paddleGames';
 import { Gamepad2 } from 'lucide-react';
 import type { ClubEvent } from '../../data/club';
 import type { mountMonitor } from './mountMonitor';
@@ -24,7 +25,7 @@ function ArcadeFallback({ arcade, onAction }: { arcade: ArcadeScreen; onAction: 
     drawArcadeScreen(ctx, arcade);
   }, [arcade]);
   return <canvas ref={canvas} width={1024} height={768} className="crt-events__arcade-fallback"
-    aria-label={arcade.view === 'games' ? 'Games menu. Choose Play Snake below.' : `Snake board. Score ${arcade.snake.score}. ${arcade.snake.status}.`}
+    aria-label={arcade.view === 'games' ? 'Games menu. Choose Snake, Pong or Breakout.' : arcade.view === 'snake' ? `Snake board. Score ${arcade.snake.score}. ${arcade.snake.status}.` : `${arcade.view} board. Score ${arcade.paddle.score}. ${arcade.paddle.status}.`}
     onClick={e => {
       e.stopPropagation();
       const rect = e.currentTarget.getBoundingClientRect();
@@ -42,8 +43,10 @@ export default function CrtEventBrowser({ events }: Props) {
   const [powered, setPowered] = useState(true);
   const [browsing, setBrowsing] = useState(false);
   const [page, setPage] = useState<number | null>(null);
-  const [view, setView] = useState<'events' | 'games' | 'snake'>('events');
+  const [view, setView] = useState<'events' | 'games' | 'snake' | 'pong' | 'breakout'>('events');
   const [snake, setSnake] = useState(createSnake);
+  const [paddle, setPaddle] = useState(() => createPaddleGame('pong'));
+  const paddleDirection = useRef(0);
   const [load, setLoad] = useState<'waiting' | 'ready' | 'fallback'>('waiting');
   const index = clampTape(Math.round(selected), events.length);
   const event = events[index];
@@ -73,6 +76,8 @@ export default function CrtEventBrowser({ events }: Props) {
   }
 
   function pauseGame() {
+    paddleDirection.current = 0;
+    setPaddle(current => current.status === 'running' ? { ...current, status: 'paused' } : current);
     setSnake(current => current.status === 'running' ? { ...current, status: 'paused' } : current);
   }
 
@@ -124,9 +129,23 @@ export default function CrtEventBrowser({ events }: Props) {
       setView('games');
       return;
     }
-    if (action === 'play' && view === 'games') {
-      setView('snake');
-      setSnake(createSnake());
+    if (action === 'snake' || action === 'pong' || action === 'breakout' || (action === 'play' && view === 'games')) {
+      const chosen = action === 'play' ? 'snake' : action;
+      paddleDirection.current = 0;
+      setView(chosen);
+      if (chosen === 'snake') setSnake(createSnake());
+      else setPaddle(createPaddleGame(chosen));
+      return;
+    }
+    if (view === 'pong' || view === 'breakout') {
+      if (action === 'restart') { setPaddle({ ...createPaddleGame(view), status: 'running' }); return; }
+      if (action === 'play' || action === 'pause') {
+        setPaddle(current => current.status === 'over' || current.status === 'won'
+          ? { ...createPaddleGame(view), status: 'running' }
+          : { ...current, status: action === 'pause' && current.status === 'running' ? 'paused' : 'running' });
+      } else if (action === 'left' || action === 'right') {
+        setPaddle(current => movePaddle(current, current.paddle + (action === 'left' ? -36 : 36)));
+      }
       return;
     }
     if (action === 'restart') { setSnake({ ...createSnake(), status: 'running' }); return; }
@@ -149,7 +168,16 @@ export default function CrtEventBrowser({ events }: Props) {
   }, [view, powered, snake.status]);
 
   useEffect(() => {
-    const pause = () => setSnake(current => current.status === 'running' ? { ...current, status: 'paused' } : current);
+    if ((view !== 'pong' && view !== 'breakout') || !powered || paddle.status !== 'running') return;
+    const timer = window.setInterval(() => setPaddle(current => {
+      const moved = movePaddle(current, current.paddle + paddleDirection.current * 320 * .02);
+      return stepPaddleGame(moved, .02);
+    }), 20);
+    return () => window.clearInterval(timer);
+  }, [view, powered, paddle.status]);
+
+  useEffect(() => {
+    const pause = pauseGame;
     const visibility = () => { if (document.hidden) pause(); };
     const observer = new IntersectionObserver(([entry]) => { if (!entry.isIntersecting) pause(); });
     if (stage.current) observer.observe(stage.current);
@@ -158,10 +186,10 @@ export default function CrtEventBrowser({ events }: Props) {
   }, []);
 
   useEffect(() => {
-    state.current = { events, selected: index, page, position: clampTape(selected, events.length), pagePosition: page ?? 0, showEvents: browsing, powered, arcade: view === 'events' ? undefined : { view, snake } };
+    state.current = { events, selected: index, page, position: clampTape(selected, events.length), pagePosition: page ?? 0, showEvents: browsing, powered, arcade: view === 'events' ? undefined : { view, snake, paddle } };
     dispatch.current = advance;
     monitor.current?.invalidate();
-  }, [events, index, selected, page, browsing, powered, view, snake]);
+  }, [events, index, selected, page, browsing, powered, view, snake, paddle]);
 
   useEffect(() => {
     const element = stage.current;
@@ -275,6 +303,8 @@ export default function CrtEventBrowser({ events }: Props) {
   const excerpt = chapter === 0 ? sample.summary : chapter === 1 ? sample.agenda.join('. ') : sample.field;
   return (
     <section ref={section} className="crt-events" aria-label="Events and games monitor"
+      onKeyUp={e => { if (['ArrowLeft', 'ArrowRight', 'a', 'A', 'd', 'D'].includes(e.key)) paddleDirection.current = 0; }}
+      onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) paddleDirection.current = 0; }}
       onKeyDown={e => {
         if (view !== 'events' && powered) {
           const directions: Record<string, SnakeDirection> = {
@@ -282,8 +312,14 @@ export default function CrtEventBrowser({ events }: Props) {
             ArrowLeft: 'left', a: 'left', ArrowRight: 'right', d: 'right',
           };
           const direction = directions[e.key] ?? directions[e.key.toLowerCase()];
-          if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); gameAction(view === 'snake' ? 'games' : 'events'); }
-          else if (direction && view === 'snake') { e.preventDefault(); e.stopPropagation(); gameAction(direction); }
+          if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); gameAction(view === 'games' ? 'events' : 'games'); }
+          else if (direction && view !== 'games') {
+            e.preventDefault(); e.stopPropagation();
+            if ((view === 'pong' || view === 'breakout') && (direction === 'left' || direction === 'right')) {
+              paddleDirection.current = direction === 'left' ? -1 : 1;
+            }
+            gameAction(direction);
+          }
           else if ((e.key === 'Enter' || e.key === ' ') && e.target === stage.current) {
             e.preventDefault();
             if (!e.repeat) gameAction(view === 'games' ? 'play' : 'pause');
@@ -322,6 +358,10 @@ export default function CrtEventBrowser({ events }: Props) {
         onPointerMove={e => {
           const hit = monitor.current?.hit(e.clientX, e.clientY);
           monitor.current?.screenPointer(hit?.kind === 'screen' ? hit.uv : null);
+          if (powered && (view === 'pong' || view === 'breakout') && hit?.kind === 'screen' &&
+            hit.uv.x >= 120 / 1024 && hit.uv.x <= 600 / 1024 && hit.uv.y >= 210 / 768 && hit.uv.y <= 594 / 768) {
+            setPaddle(current => movePaddle(current, hit.uv.x * 1024 - 120));
+          }
           const start = gesture.current;
           if (!start || start.id !== e.pointerId) {
             if (e.pointerType === 'mouse' && view === 'events' && browsing && !detail && powered) {
@@ -350,6 +390,10 @@ export default function CrtEventBrowser({ events }: Props) {
           const dx = start.x - e.clientX;
           const dy = start.y - e.clientY;
           if (start.mode === 'cabinet') monitor.current?.moveGrab(0, 0);
+          if ((view === 'pong' || view === 'breakout') && start.mode === 'screen' && Math.hypot(dx, dy) > 12) {
+            suppressClick.current = performance.now() + 400;
+            return;
+          }
           if (view === 'snake' && start.mode === 'screen' && Math.hypot(dx, dy) > 12) {
             gameAction(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'left' : 'right') : (dy > 0 ? 'up' : 'down'));
             suppressClick.current = performance.now() + 400;
@@ -411,7 +455,7 @@ export default function CrtEventBrowser({ events }: Props) {
         }}>
         {load !== 'ready' && powered && (
           <div className="crt-events__fallback">
-            {view !== 'events' ? <ArcadeFallback arcade={{ view, snake }} onAction={gameAction} /> : <>
+            {view !== 'events' ? <ArcadeFallback arcade={{ view, snake, paddle }} onAction={gameAction} /> : <>
             <p className="crt-events__signal">{browsing ? event.vertical : 'B/STACK EVENTS'}</p>
             <p className="crt-events__fallback-title">{browsing ? event.title : 'Upcoming events'}</p>
             <p>{!browsing ? 'Scroll sideways to browse' : detail ? excerpt : event.dateStr}</p>
@@ -421,14 +465,14 @@ export default function CrtEventBrowser({ events }: Props) {
         )}
         <div className="crt-events__keys" role="group" aria-label="Monitor buttons">
           <button type="button" data-crt-key="previous"
-            aria-label={view === 'snake' ? 'Snake left' : detail ? 'Previous detail' : 'Previous event'}
+            aria-label={view === 'pong' || view === 'breakout' ? 'Move paddle left' : view === 'snake' ? 'Snake left' : detail ? 'Previous detail' : 'Previous event'}
             disabled={!powered || view === 'games' || (view === 'events' && browsing && (detail ? page === 0 : index === 0))}
             onClick={() => advance(-1)}>Previous</button>
           <button ref={openButton} type="button" data-crt-key="select" onClick={toggle} disabled={!powered}>
-            {view === 'games' ? 'Play Snake' : view === 'snake' ? 'Play or pause Snake' : !browsing ? 'Browse events' : detail ? 'Back to events' : 'Open event'}
+            {view === 'games' ? 'Play Snake' : view !== 'events' ? 'Play or pause game' : !browsing ? 'Browse events' : detail ? 'Back to events' : 'Open event'}
           </button>
           <button type="button" data-crt-key="next"
-            aria-label={view === 'snake' ? 'Snake right' : detail ? 'Next detail' : 'Next event'}
+            aria-label={view === 'pong' || view === 'breakout' ? 'Move paddle right' : view === 'snake' ? 'Snake right' : detail ? 'Next detail' : 'Next event'}
             disabled={!powered || view === 'games' || (view === 'events' && browsing && (detail ? page === DETAIL_END : index === events.length - 1))}
             onClick={() => advance(1)}>Next</button>
           <button type="button" data-crt-key="power"
@@ -436,11 +480,26 @@ export default function CrtEventBrowser({ events }: Props) {
         </div>
       </div>
       {powered && browsing && (
-        <div className={`crt-events__arcade-controls${view === 'snake' ? '' : ' crt-events__arcade-controls--concealed'}`} role="group" aria-label="Monitor games">
+        <div className={`crt-events__arcade-controls${view !== 'events' && view !== 'games' ? '' : ' crt-events__arcade-controls--concealed'}`} role="group" aria-label="Monitor games">
           {view === 'events' && <button type="button" onClick={openGames}><Gamepad2 size={18} aria-hidden="true" />Games</button>}
           {view === 'games' && <>
-            <button type="button" onClick={() => gameAction('play')}>Play Snake</button>
+            <button type="button" onClick={() => gameAction('snake')}>Play Snake</button>
+            <button type="button" onClick={() => gameAction('pong')}>Play Pong</button>
+            <button type="button" onClick={() => gameAction('breakout')}>Play Breakout</button>
             <button type="button" onClick={() => gameAction('events')}>Back to events</button>
+          </>}
+          {(view === 'pong' || view === 'breakout') && <>
+            <button type="button" aria-label="Move paddle left"
+              onPointerDown={e => { paddleDirection.current = -1; e.currentTarget.setPointerCapture(e.pointerId); }}
+              onPointerUp={() => { paddleDirection.current = 0; }} onPointerCancel={() => { paddleDirection.current = 0; }}
+              onClick={() => gameAction('left')}>←</button>
+            <button type="button" aria-label="Move paddle right"
+              onPointerDown={e => { paddleDirection.current = 1; e.currentTarget.setPointerCapture(e.pointerId); }}
+              onPointerUp={() => { paddleDirection.current = 0; }} onPointerCancel={() => { paddleDirection.current = 0; }}
+              onClick={() => gameAction('right')}>→</button>
+            <button type="button" onClick={() => gameAction('pause')}>{paddle.status === 'running' ? 'Pause' : 'Play'}</button>
+            <button type="button" onClick={() => gameAction('restart')}>Restart</button>
+            <button type="button" onClick={() => gameAction('games')}>Games</button>
           </>}
           {view === 'snake' && <>
             <button type="button" aria-label="Snake up" onClick={() => gameAction('up')}>↑</button>
@@ -453,6 +512,7 @@ export default function CrtEventBrowser({ events }: Props) {
           </>}
         </div>
       )}
+      {(view === 'pong' || view === 'breakout') && <p className="sr-only" role="status">{view}. Score {paddle.score}. {paddle.status}.</p>}
       {view === 'snake' && <p className="sr-only" role="status">Snake. Score {snake.score}. {snake.status}.</p>}
       <div className="sr-only" aria-live="polite" aria-atomic="true" hidden={view !== 'events'}>
         <p>{!powered ? 'Monitor off' : browsing ? event.title : 'Upcoming events'}</p>

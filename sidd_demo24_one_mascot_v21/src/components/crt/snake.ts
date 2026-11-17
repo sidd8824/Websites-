@@ -60,11 +60,16 @@ export function stepSnake(state: SnakeState, random = Math.random): SnakeState {
     status: food === null ? 'won' : 'running' };
 }
 
-export type ArcadeAction = SnakeDirection | 'play' | 'pause' | 'restart' | 'games' | 'events';
+export type ArcadeAction = SnakeDirection | 'play' | 'pause' | 'restart' | 'games' | 'events' | 'snake' | 'pong' | 'breakout';
 
-export function arcadeActionAt(x: number, y: number, view: 'games' | 'snake'): ArcadeAction | null {
+export function arcadeActionAt(x: number, y: number, view: 'games' | 'snake' | 'pong' | 'breakout'): ArcadeAction | null {
   if (y < .20 && x < .4) return view === 'snake' ? 'games' : 'events';
-  if (view === 'games') return x >= .25 && x <= .75 && y >= .28 && y <= .78 ? 'play' : null;
+  if (view === 'games') {
+    if (y < 220 / 768 || y > 575 / 768) return null;
+    const column = Math.floor((x * 1024 - 94) / 292);
+    if (column < 0 || column > 2 || x * 1024 > 94 + column * 292 + 252) return null;
+    return (['snake', 'pong', 'breakout'] as const)[column];
+  }
   const px = x * 1024;
   const py = y * 768;
   if (px >= 120 && px <= 600 && py >= 210 && py <= 594) return 'play';

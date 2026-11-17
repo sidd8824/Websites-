@@ -280,7 +280,7 @@ export function createCubeBackground() {
   const view = { width: 1, height: 1, ratio: 1, scale: 1 };
   const pointer = { x: 0, y: 0, inside: false, moved: 0 };
   const cursor = { x: 0, y: 0, vx: 0, vy: 0, weight: 0, primed: false };
-  const grid = { size: 0, count: 0 };
+  const grid = { size: 0, count: 0, columns: 0, rows: 0 };
   let rx = new Float32Array(0);
   let ry = new Float32Array(0);
   let wx = new Float32Array(0);
@@ -295,7 +295,10 @@ export function createCubeBackground() {
   const allocate = size => {
     if (grid.size === size) return;
     grid.size = size;
-    grid.count = size * size;
+    // Extend the reference grid past every edge of the 4:3 display without stretching cubes.
+    grid.columns = Math.ceil(view.width / view.scale) + 2;
+    grid.rows = Math.ceil(view.height / view.scale) + 2;
+    grid.count = grid.columns * grid.rows;
     rx = new Float32Array(grid.count);
     ry = new Float32Array(grid.count);
     wx = new Float32Array(grid.count);
@@ -303,18 +306,15 @@ export function createCubeBackground() {
     glow = new Float32Array(grid.count);
     delays = new Float32Array(grid.count);
     instances = new Float32Array(grid.count * 8);
-    const center = (size - 1) / 2;
     for (let i = 0; i < grid.count; i++) {
-      const col = i % size;
-      const row = Math.floor(i / size);
-      delays[i] = Math.hypot(col - center, row - center) / Math.max(1, size / 2);
+      const col = i % grid.columns;
+      const row = Math.floor(i / grid.columns);
+      delays[i] = Math.hypot(col - (grid.columns - 1) / 2, row - (grid.rows - 1) / 2) / Math.max(1, size / 2);
     }
   };
 
   const cellOf = i => {
-    const size = grid.size;
-    const center = (size - 1) / 2;
-    return [(i % size) - center, center - Math.floor(i / size)];
+    return [(i % grid.columns) - (grid.columns - 1) / 2, (grid.rows - 1) / 2 - Math.floor(i / grid.columns)];
   };
 
   const toWorld = (x, y) => [(x - view.width / 2) / view.scale, (view.height / 2 - y) / view.scale];
@@ -495,7 +495,7 @@ export function createCubeBackground() {
       instances[base + 6] = glow[i];
       instances[base + 7] = grow;
     }
-    if (introClock >= INTRO_SECONDS + 0.6 && introClock < 99) introClock = 99;
+    if (introClock >= INTRO_SECONDS + Math.max(...delays) * .55 + .1 && introClock < 99) introClock = 99;
     return (
       moving ||
       live ||

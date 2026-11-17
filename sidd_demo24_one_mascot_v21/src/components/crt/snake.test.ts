@@ -66,7 +66,9 @@ test('filling the board wins without trying to spawn more food', () => {
 });
 
 test('canvas menu, direction and restart hit areas resolve to game actions', () => {
-  assert.equal(arcadeActionAt(.5, .5, 'games'), 'play');
+  assert.equal(arcadeActionAt(.2, .5, 'games'), 'snake');
+  assert.equal(arcadeActionAt(.5, .5, 'games'), 'pong');
+  assert.equal(arcadeActionAt(.8, .5, 'games'), 'breakout');
   assert.equal(arcadeActionAt(806 / 1024, 330 / 768, 'snake'), 'up');
   assert.equal(arcadeActionAt(800 / 1024, 580 / 768, 'snake'), 'restart');
   assert.equal(arcadeActionAt(.15, .13, 'snake'), 'games');
