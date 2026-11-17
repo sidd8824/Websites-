@@ -17,12 +17,32 @@ test('queued turns cannot reverse the last completed direction', () => {
   assert.deepEqual(stepSnake({ ...state, status: 'running' }).body[0], { x: 8, y: 7 });
 });
 
-test('walls and occupied body cells end the game', () => {
-  const wall: SnakeState = { ...createSnake(), status: 'running', body: [{ x: 19, y: 8 }] };
-  assert.equal(stepSnake(wall).status, 'over');
+test('occupied body cells end the game', () => {
   const body: SnakeState = { ...createSnake(), status: 'running', direction: 'up', nextDirection: 'left',
     body: [{ x: 2, y: 2 }, { x: 1, y: 2 }, { x: 1, y: 3 }] };
   assert.equal(stepSnake(body).status, 'over');
+});
+
+test('crossing any screen edge wraps onto its opposite edge', () => {
+  const cases = [
+    { direction: 'right', start: { x: 19, y: 8 }, end: { x: 0, y: 8 } },
+    { direction: 'left', start: { x: 0, y: 8 }, end: { x: 19, y: 8 } },
+    { direction: 'up', start: { x: 8, y: 0 }, end: { x: 8, y: 15 } },
+    { direction: 'down', start: { x: 8, y: 15 }, end: { x: 8, y: 0 } },
+  ] as const;
+  for (const entry of cases) {
+    const state: SnakeState = { ...createSnake(), body: [entry.start], food: { x: 5, y: 5 },
+      status: 'running', direction: entry.direction, nextDirection: entry.direction };
+    const next = stepSnake(state);
+    assert.equal(next.status, 'running');
+    assert.deepEqual(next.body[0], entry.end);
+  }
+});
+
+test('wrapping into an occupied body cell still ends the game', () => {
+  const state: SnakeState = { ...createSnake(), status: 'running', direction: 'up', nextDirection: 'left',
+    body: [{ x: 0, y: 8 }, { x: 19, y: 8 }, { x: 18, y: 8 }] };
+  assert.equal(stepSnake(state).status, 'over');
 });
 
 test('the tail cell is free on a non-growing move and paused games stay still', () => {

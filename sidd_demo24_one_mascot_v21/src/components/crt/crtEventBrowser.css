@@ -118,3 +118,31 @@
   border-radius: 1rem;
   pointer-events: auto;
 }
+
+/* Keep games in the monitor. Reveal native controls on keyboard focus or during touch play. */
+.crt-events__arcade-controls--concealed:not(:focus-within) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.crt-events__arcade-controls button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+}
+@media (hover: hover) and (pointer: fine) {
+  .crt-events__arcade-controls:not(:focus-within) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Gamepad2 } from 'lucide-react';
 import type { ClubEvent } from '../../data/club';
 import type { mountMonitor } from './mountMonitor';
 import { clampTape, settleTape } from './tapeMotion';
@@ -391,7 +392,7 @@ export default function CrtEventBrowser({ events }: Props) {
             if (action) gameAction(action);
             return;
           }
-          if (y < .20 && x > .59 && x < .80) { openGames(); return; }
+          if (browsing && y < .20 && x > .64 && x < .80) { openGames(); return; }
           if (!browsing) { beginBrowsing(); return; }
           if (detail) {
             if (y < .20 && x < .35) toggle();
@@ -434,9 +435,9 @@ export default function CrtEventBrowser({ events }: Props) {
             onClick={togglePower}>{powered ? 'Turn monitor off' : 'Turn monitor on'}</button>
         </div>
       </div>
-      {powered && (
-        <div className="crt-events__arcade-controls" role="group" aria-label="Monitor games">
-          {view === 'events' && <button type="button" onClick={openGames}>Games</button>}
+      {powered && browsing && (
+        <div className={`crt-events__arcade-controls${view === 'snake' ? '' : ' crt-events__arcade-controls--concealed'}`} role="group" aria-label="Monitor games">
+          {view === 'events' && <button type="button" onClick={openGames}><Gamepad2 size={18} aria-hidden="true" />Games</button>}
           {view === 'games' && <>
             <button type="button" onClick={() => gameAction('play')}>Play Snake</button>
             <button type="button" onClick={() => gameAction('events')}>Back to events</button>

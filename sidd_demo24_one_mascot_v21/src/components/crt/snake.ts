@@ -44,11 +44,13 @@ export function turnSnake(state: SnakeState, direction: SnakeDirection): SnakeSt
 export function stepSnake(state: SnakeState, random = Math.random): SnakeState {
   if (state.status !== 'running') return state;
   const vector = vectors[state.nextDirection];
-  const head = { x: state.body[0].x + vector.x, y: state.body[0].y + vector.y };
+  const head = {
+    x: (state.body[0].x + vector.x + SNAKE_COLUMNS) % SNAKE_COLUMNS,
+    y: (state.body[0].y + vector.y + SNAKE_ROWS) % SNAKE_ROWS,
+  };
   const eating = head.x === state.food?.x && head.y === state.food?.y;
   const occupied = eating ? state.body : state.body.slice(0, -1);
-  if (head.x < 0 || head.x >= SNAKE_COLUMNS || head.y < 0 || head.y >= SNAKE_ROWS ||
-    occupied.some(cell => cell.x === head.x && cell.y === head.y)) {
+  if (occupied.some(cell => cell.x === head.x && cell.y === head.y)) {
     return { ...state, status: 'over' };
   }
   const body = [head, ...state.body];

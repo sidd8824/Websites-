@@ -1,4 +1,4 @@
-import { drawArcadeScreen, type ArcadeScreen } from './arcadeScreen';
+import { drawArcadeScreen, drawGamepad, type ArcadeScreen } from './arcadeScreen';
 import { tapePose } from './tapeMotion';
 import type { ClubEvent } from '../../data/club';
 import { DETAIL_CHAPTERS, DETAIL_END, detailChapter, sampleDetail } from './detailRail';
@@ -338,9 +338,12 @@ export function drawEventScreen(ctx: CanvasRenderingContext2D, state: ScreenStat
     text(ctx, `${selected + 1} / ${events.length}`, 950, 106, 21, MUTED);
     ctx.textAlign = 'left';
   }
-  ctx.textAlign = 'right';
-  text(ctx, '[ GAMES ]', 790, 106, 20, '#c5eeee');
-  ctx.textAlign = 'left';
+  if (showEvents) {
+    drawGamepad(ctx, 686, 84, 28);
+    ctx.textAlign = 'right';
+    text(ctx, 'GAMES', 790, 106, 20, '#c5eeee');
+    ctx.textAlign = 'left';
+  }
   rule(ctx, 72, 125, 878);
   if (!showEvents) {
     text(ctx, 'Upcoming', 100, 358, 104, PAPER, true);

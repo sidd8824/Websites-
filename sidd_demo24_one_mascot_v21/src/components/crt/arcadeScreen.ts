@@ -5,6 +5,34 @@ export interface ArcadeScreen {
   snake: SnakeState;
 }
 
+export function drawGamepad(ctx: CanvasRenderingContext2D, x: number, y: number, size = 32) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(size / 32, size / 32);
+  ctx.strokeStyle = '#c5eeee';
+  ctx.lineWidth = 1.8;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(9, 7);
+  ctx.bezierCurveTo(3, 6, 2, 14, 1, 23);
+  ctx.bezierCurveTo(1, 29, 6, 29, 11, 22);
+  ctx.lineTo(21, 22);
+  ctx.bezierCurveTo(26, 29, 31, 29, 31, 23);
+  ctx.bezierCurveTo(30, 14, 29, 6, 23, 7);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(7, 15); ctx.lineTo(13, 15);
+  ctx.moveTo(10, 12); ctx.lineTo(10, 18);
+  ctx.stroke();
+  ctx.fillStyle = '#c5eeee';
+  for (const [cx, cy] of [[23, 13], [26, 17]]) {
+    ctx.beginPath(); ctx.arc(cx, cy, 1.5, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+}
+
 export function drawArcadeScreen(ctx: CanvasRenderingContext2D, arcade: ArcadeScreen) {
   const ink = '#c5eeee';
   const label = (value: string, x: number, y: number, size = 20, color = ink) => {
@@ -26,6 +54,7 @@ export function drawArcadeScreen(ctx: CanvasRenderingContext2D, arcade: ArcadeSc
   label(arcade.view === 'games' ? '‹ EVENTS' : '‹ GAMES', 72, 106, 23);
   ctx.textAlign = 'right';
   label('B/STACK ARCADE', 950, 106, 20);
+  drawGamepad(ctx, 742, 84, 28);
   ctx.textAlign = 'left';
   ctx.fillStyle = '#bce5e544';
   ctx.fillRect(72, 125, 878, 1);
@@ -99,6 +128,6 @@ export function drawArcadeScreen(ctx: CanvasRenderingContext2D, arcade: ArcadeSc
   button('RESTART', 710, 562, 192);
   button('GAMES', 710, 614, 192);
   label('ARROWS / WASD · SPACE TO PAUSE', 120, 655, 17);
-  label('Avoid the walls and your tail.', 120, 687, 17);
+  label('Edges wrap. Avoid your tail.', 120, 687, 17);
   ctx.restore();
 }
