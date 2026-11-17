@@ -88,13 +88,14 @@ function tape(ctx: CanvasRenderingContext2D, event: ClubEvent, index: number, of
   ctx.save();
   ctx.translate(pose.x, pose.y);
   ctx.rotate(pose.rotation + lift * (hover?.lean ?? 0) * .048);
-  ctx.scale(pose.scale, pose.scale);
-  ctx.globalAlpha = pose.alpha;
+  ctx.scale(pose.scale * pose.widthScale, pose.scale);
+  const opacity = ctx.globalAlpha * pose.alpha;
+  ctx.globalAlpha = opacity;
   ctx.fillStyle = '#070906';
   ctx.fillRect(-106, -172, 230, 368);
 
   // A molded cassette slides up from behind the printed sleeve when it lifts.
-  const cassetteY = -173 - (distance < .5 ? 12 : 0) - lift * 28;
+  const cassetteY = -173 - Math.max(0, 1 - distance * 2) * 12 - lift * 28;
   const plastic = ctx.createLinearGradient(0, cassetteY, 0, cassetteY + 64);
   plastic.addColorStop(0, '#45483c');
   plastic.addColorStop(1, '#1a201a');
@@ -121,9 +122,9 @@ function tape(ctx: CanvasRenderingContext2D, event: ClubEvent, index: number, of
   ctx.fillStyle = stock;
   ctx.fillRect(-114, -181, 228, 366);
   ctx.strokeStyle = isQuad ? '#f4edb5' : accent;
-  ctx.globalAlpha = pose.alpha * .52;
+  ctx.globalAlpha = opacity * .52;
   ctx.strokeRect(-113.5, -180.5, 227, 365);
-  ctx.globalAlpha = pose.alpha;
+  ctx.globalAlpha = opacity;
 
   const photoX = isRust ? -113 : -98;
   const photoY = isQuad ? -43 : -119;
@@ -216,32 +217,46 @@ function framedPhoto(ctx: CanvasRenderingContext2D, photo: HTMLImageElement | nu
   text(ctx, caption.toUpperCase(), x, 574, 17, MUTED, false, width);
 }
 
-function detailTrack(ctx: CanvasRenderingContext2D, event: ClubEvent, pagePosition: number, photo: HTMLImageElement | null) {
+function detailTrack(ctx: CanvasRenderingContext2D, event: ClubEvent, pagePosition: number,
+  photo: HTMLImageElement | null, motion: number) {
   const color = eventColor(event);
   const sample = sampleDetail(event);
-  ctx.save();
-  ctx.translate(-pagePosition * 720, 0);
+  const travel = pagePosition * 740;
+  // Each panel turns gently around the viewer as it crosses the curved tube.
+  const panel = (x: number, width: number, draw: () => void) => {
+    const center = x + width / 2 - travel;
+    const turn = Math.max(-1, Math.min(1, (center - 512) / 850));
+    ctx.save();
+    ctx.translate(center, 365 + Math.abs(turn) * 9);
+    ctx.transform(1 - Math.abs(turn) * .065, turn * .035, -motion * .012, 1, 0, 0);
+    ctx.translate(-width / 2, -365);
+    draw();
+    ctx.restore();
+  };
   const textBlock = (x: number, label: string, headline: string, body: string) => {
-    text(ctx, label, x, 200, 18, color);
-    ctx.font = 'bold 44px Georgia, serif';
-    const headingRows = lines(ctx, headline, 350);
-    headingRows.forEach((line, i) => text(ctx, line, x, 294 + i * 46, 44, PAPER, true, 350));
-    ctx.font = '21px monospace';
-    lines(ctx, body, 350).forEach((line, i) =>
-      text(ctx, line, x, 310 + headingRows.length * 46 + i * 26, 21, MUTED, false, 350));
+    panel(x, 330, () => {
+      text(ctx, label, 0, 197, 16, color);
+      ctx.font = 'bold 40px Georgia, serif';
+      const headingRows = lines(ctx, headline, 330);
+      headingRows.forEach((line, i) => text(ctx, line, 0, 277 + i * 43, 40, PAPER, true, 330));
+      ctx.font = '18px monospace';
+      lines(ctx, body, 330).forEach((line, i) =>
+        text(ctx, line, 0, 300 + headingRows.length * 43 + i * 24, 18, MUTED, false, 330));
+    });
   };
   textBlock(82, '[ EVENT OVERVIEW ]', sample.headline, sample.summary);
-  text(ctx, event.dateStr, 82, 232, 17, MUTED, false, 350);
-  framedPhoto(ctx, photo, sample.photo, 0, 480, 566, sample.captions[0], color);
-  text(ctx, '[ SAMPLE SESSION PLAN ]', 1090, 200, 18, color);
-  text(ctx, 'The run of show.', 1090, 294, 43, PAPER, true, 335);
-  sample.agenda.forEach((entry, i) => text(ctx, entry, 1090, 345 + i * 37, 19, MUTED, false, 340));
-  rule(ctx, 1090, 471, 330);
-  ctx.font = '20px monospace';
-  lines(ctx, event.location, 330).forEach((line, i) => text(ctx, line, 1090, 506 + i * 27, 20, MUTED));
-  framedPhoto(ctx, photo, sample.photo, 1, 1470, 530, sample.captions[1], color);
-  textBlock(2055, '[ FIELD NOTES ]', 'Before you arrive.', sample.field);
-  ctx.restore();
+  panel(82, 330, () => text(ctx, event.dateStr, 0, 227, 15, MUTED, false, 330));
+  panel(470, 560, () => framedPhoto(ctx, photo, sample.photo, 0, 0, 560, sample.captions[0], color));
+  panel(1100, 330, () => {
+    text(ctx, '[ SESSION PLAN ]', 0, 200, 17, color);
+    text(ctx, 'The run of show.', 0, 278, 39, PAPER, true, 330);
+    sample.agenda.forEach((entry, i) => text(ctx, entry, 0, 334 + i * 38, 17, MUTED, false, 330));
+    rule(ctx, 0, 464, 330);
+    ctx.font = '18px monospace';
+    lines(ctx, event.location, 330).forEach((line, i) => text(ctx, line, 0, 500 + i * 25, 18, MUTED));
+  });
+  panel(1490, 560, () => framedPhoto(ctx, photo, sample.photo, 1, 0, 560, sample.captions[1], color));
+  textBlock(2110, '[ FIELD NOTES ]', 'Before you arrive.', sample.field);
 }
 
 export interface ScreenState {
@@ -252,6 +267,8 @@ export interface ScreenState {
   pagePosition: number;
   showEvents: boolean;
   powered: boolean;
+  detailMix?: number;
+  motion?: number;
   tapeHover?: { index: number; lean: number; amount: number };
 }
 
@@ -306,13 +323,15 @@ function drawTubeBackground(ctx: CanvasRenderingContext2D) {
 export function drawEventScreen(ctx: CanvasRenderingContext2D, state: ScreenState, photo: HTMLImageElement | null = null) {
   const { events, selected, position, page, pagePosition, showEvents, tapeHover } = state;
   const event = events[selected];
+  const mix = state.detailMix ?? (page === null ? 0 : 1);
+  const motion = state.motion ?? 0;
   const color = eventColor(event);
   drawTubeBackground(ctx);
   ctx.save();
   ctx.beginPath();
   ctx.rect(62, 58, 900, 652);
   ctx.clip();
-  text(ctx, !showEvents ? 'B/STACK  /  UPCOMING EVENTS' : page === null ? '‹ UPCOMING EVENTS' : '‹ ALL EVENTS', 72, 106, 23, color);
+  text(ctx, !showEvents ? 'B/STACK  /  UPCOMING EVENTS' : mix < .5 ? '‹ UPCOMING EVENTS' : '‹ ALL EVENTS', 72, 106, 23, color);
   if (showEvents) {
     ctx.textAlign = 'right';
     text(ctx, `${selected + 1} / ${events.length}`, 950, 106, 21, MUTED);
@@ -323,33 +342,53 @@ export function drawEventScreen(ctx: CanvasRenderingContext2D, state: ScreenStat
     text(ctx, 'Upcoming', 100, 358, 104, PAPER, true);
     text(ctx, 'events', 100, 461, 104, PAPER, true);
     text(ctx, 'SCROLL SIDEWAYS TO BROWSE  ›', 106, 602, 26, MUTED);
-  } else if (page === null) {
-    events.map((item, index) => ({ item, index, offset: index - position }))
-      .sort((a, b) => Math.abs(b.offset) - Math.abs(a.offset))
-      .forEach(({ item, index, offset }) => tape(ctx, item, index, offset, photo, tapeHover?.index === index ? tapeHover : undefined));
-    ctx.textAlign = 'center';
-    text(ctx, event.title, 512, 607, 38, PAPER, true, 855);
-    text(ctx, event.dateStr, 512, 648, 24, color, false, 855);
-    text(ctx, 'SCROLL SIDEWAYS  /  SELECT TAPE TO OPEN', 512, 689, 19, MUTED);
-    ctx.textAlign = 'left';
   } else {
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(69, 141, 885, 477);
-    ctx.clip();
-    detailTrack(ctx, event, pagePosition, photo);
-    ctx.restore();
-    rule(ctx, 72, 621, 878);
-    for (let i = 0; i <= 60; i++) {
-      ctx.fillStyle = i <= pagePosition / DETAIL_END * 60 ? color : '#46524a';
-      ctx.fillRect(73 + 14.55 * i, 616, 2, 11);
+    if (mix < 1) {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, 1 - mix * 3);
+      ctx.translate(-mix * 150, mix * 38);
+      events.map((item, index) => ({ item, index, offset: index - position }))
+        .sort((a, b) => Math.abs(b.offset) - Math.abs(a.offset))
+        .forEach(({ item, index, offset }) => tape(ctx, item, index, offset, photo, tapeHover?.index === index ? tapeHover : undefined));
+      if (tapeHover) {
+        const pose = tapePose(tapeHover.index - position, tapeHover.amount);
+        ctx.save();
+        ctx.globalAlpha *= tapeHover.amount;
+        text(ctx, tapeHover.index === selected ? '[ OPEN TAPE ]' : '[ SELECT TAPE ]',
+          Math.min(790, pose.x + 48 + tapeHover.lean * 70), pose.y - 20, 14, PAPER);
+        ctx.restore();
+      }
+      ctx.textAlign = 'center';
+      text(ctx, event.title, 512, 615, 31, PAPER, true, 830);
+      text(ctx, event.dateStr, 512, 652, 21, color, false, 855);
+      text(ctx, 'SCROLL TO BROWSE  /  SELECT TAPE TO OPEN', 512, 689, 16, MUTED);
+      ctx.textAlign = 'left';
+      ctx.restore();
     }
-    const chapter = detailChapter(pagePosition);
-    text(ctx, DETAIL_CHAPTERS[chapter].toUpperCase(), 73, 664, 24, color);
-    ctx.textAlign = 'right';
-    text(ctx, `‹    ${chapter + 1} / ${DETAIL_CHAPTERS.length}    ›`, 950, 664, 24);
-    ctx.textAlign = 'left';
-    text(ctx, 'SAMPLE EVENT DETAILS  /  SCROLL OR DRAG SIDEWAYS', 73, 694, 17, MUTED);
+    if (mix > 0) {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, (mix - .35) / .65);
+      ctx.translate((1 - mix) * 120, 0);
+      ctx.beginPath();
+      ctx.rect(69, 141, 885, 477);
+      ctx.clip();
+      detailTrack(ctx, event, pagePosition, photo, motion);
+      ctx.restore();
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, (mix - .35) / .65);
+      rule(ctx, 72, 621, 878, '#88888855');
+      for (let i = 0; i <= 60; i++) {
+        ctx.fillStyle = i <= pagePosition / DETAIL_END * 60 ? color : '#46524a';
+        ctx.fillRect(73 + 14.55 * i, 616, 2, 11);
+      }
+      const chapter = detailChapter(pagePosition);
+      text(ctx, DETAIL_CHAPTERS[chapter].toUpperCase(), 73, 664, 24, color);
+      ctx.textAlign = 'right';
+      text(ctx, `‹    ${chapter + 1} / ${DETAIL_CHAPTERS.length}    ›`, 950, 664, 24);
+      ctx.textAlign = 'left';
+      text(ctx, 'SCROLL OR DRAG TO DISCOVER', 73, 694, 17, MUTED);
+      ctx.restore();
+    }
   }
   ctx.restore();
 }

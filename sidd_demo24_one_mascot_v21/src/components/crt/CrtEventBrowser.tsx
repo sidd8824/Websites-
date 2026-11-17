@@ -99,30 +99,28 @@ export default function CrtEventBrowser({ events }: Props) {
     let last = -Infinity;
     let stepped = -Infinity;
     let wheelOrigin = 0;
-    let returnUntil = -Infinity;
+    let edgeTravel = 0;
     const onWheel = (e: WheelEvent) => {
-      if (e.ctrlKey || e.metaKey) return;
+      if (e.ctrlKey || e.metaKey || !state.current.powered) return;
       const now = performance.now();
       const sideways = e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY);
-      if (!sideways && e.deltaY > 0 && (state.current.showEvents || now < returnUntil)) {
-        // Let the return finish before the same wheel gesture carries the page past it.
-        if (e.cancelable) e.preventDefault();
-        e.stopPropagation();
-        if (now >= returnUntil) {
-          total = 0;
-          returnUntil = now + 850;
-          resetMonitor();
-        }
-        return;
-      }
-      if (!sideways || !state.current.powered || now < returnUntil) return;
-      const delta = e.deltaX || e.deltaY;
+      if (!sideways && !state.current.showEvents) return;
+      const delta = e.shiftKey ? e.deltaX || e.deltaY : sideways ? e.deltaX : e.deltaY;
       if (!delta) return;
+      const movement = delta * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 320 : 1);
+      const current = state.current.page ?? state.current.position;
+      const end = state.current.page === null ? state.current.events.length - 1 : DETAIL_END;
+      const atEdge = movement < 0 ? current <= 0 : current >= end;
+      // A deliberate continued vertical scroll at either end releases the page.
+      if (!sideways && atEdge) {
+        edgeTravel = now - last > 240 ? Math.abs(movement) : edgeTravel + Math.abs(movement);
+        last = now;
+        if (edgeTravel > 180) { resetMonitor(); return; }
+      } else edgeTravel = 0;
       if (e.cancelable) e.preventDefault();
       e.stopPropagation();
-      const movement = delta * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 320 : 1);
       if (state.current.page !== null) {
-        setPage(value => value === null ? null : detailPosition(value + movement / 720));
+        setPage(value => value === null ? null : detailPosition(value + movement / 900));
         return;
       }
       if (state.current.showEvents) {
@@ -130,11 +128,11 @@ export default function CrtEventBrowser({ events }: Props) {
 
         if (settleTimer.current === undefined) wheelOrigin = state.current.position;
         window.clearTimeout(settleTimer.current);
-        setSelected(value => clampTape(value + movement / 440, state.current.events.length));
+        setSelected(value => clampTape(value + movement / 540, state.current.events.length));
         settleTimer.current = window.setTimeout(() => {
           settleTimer.current = undefined;
           setSelected(value => settleTape(value, wheelOrigin, state.current.events.length));
-        }, 150);
+        }, 190);
         return;
       }
       if (now - stepped < 240) return;
@@ -190,7 +188,8 @@ export default function CrtEventBrowser({ events }: Props) {
       onKeyDown={e => {
         if (e.key === 'Escape' && browsing) {
           e.stopPropagation();
-          resetMonitor();
+          if (page !== null) setPage(null);
+          else resetMonitor();
           openButton.current?.focus({ preventScroll: true });
         }
         else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
@@ -198,7 +197,7 @@ export default function CrtEventBrowser({ events }: Props) {
           advance(e.key === 'ArrowLeft' ? -1 : 1);
         }
       }}>
-      <div ref={stage} className="crt-events__stage" data-lenis-prevent-horizontal data-display={load}
+      <div ref={stage} className="crt-events__stage" data-lenis-prevent-horizontal data-lenis-prevent={browsing ? true : undefined} data-display={load}
         onPointerDown={e => {
           if (!e.isPrimary || e.button !== 0) return;
           const mode = monitor.current?.hit(e.clientX, e.clientY)?.kind;

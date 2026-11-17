@@ -171,6 +171,9 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
   let tapePointer: { x: number; y: number } | null = null;
   let hover: ScreenState['tapeHover'];
   let pagePosition = getState().page ?? 0;
+  let detailMix = getState().page === null ? 0 : 1;
+  let motion = 0;
+  let stageVisible = false;
   let frame = 0;
   let entrance = 0;
   let focus = 0;
@@ -234,7 +237,11 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
       prefersReducedMotion.matches || Math.abs(from - to) < .001
         ? to
         : from + (to - from) * (1 - Math.exp(-dt / duration));
-    position = damp(position, state.position, 92);
+    const previousPosition = position;
+    const previousPagePosition = pagePosition;
+    position = damp(position, state.position, 135);
+    const detailTarget = state.page === null ? 0 : 1;
+    detailMix = damp(detailMix, detailTarget, 95);
     const tapeIndex = state.powered && state.showEvents && state.page === null && tapePointer
       ? tapeAt(tapePointer.x, tapePointer.y, position, state.events.length)
       : null;
@@ -246,10 +253,13 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
       const amount = damp(hover.amount, 0, 48);
       hover = amount === 0 ? undefined : { ...hover, amount };
     }
-    const pageTarget = state.page ?? 0;
+    const pageTarget = state.page ?? pagePosition;
     pagePosition = prefersReducedMotion.matches || Math.abs(pagePosition - pageTarget) < .001
       ? pageTarget
-      : pagePosition + (pageTarget - pagePosition) * (1 - Math.exp(-dt / 112));
+      : pagePosition + (pageTarget - pagePosition) * (1 - Math.exp(-dt / 145));
+    const speed = ((position - previousPosition) + (pagePosition - previousPagePosition)) * 1000 / dt;
+    motion = damp(motion, Math.max(-1, Math.min(1, speed * .16)), 100);
+    glass.setFrame(prefersReducedMotion.matches ? 0 : now / 1000, motion);
     if (lastScreen?.powered !== state.powered) {
       screen.material = state.powered ? screenOn : screenOff;
       if (light) {
@@ -257,9 +267,8 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
         light.emissiveIntensity = state.powered ? .75 : 0;
       }
     }
-    const display = { ...state, position, pagePosition, tapeHover: hover, showEvents: state.showEvents && focus > .38 };
+    const display = { ...state, position, pagePosition, detailMix, motion, tapeHover: hover, showEvents: state.showEvents && focus > .38 };
     if (lastScreen && (display.showEvents !== lastScreen.showEvents ||
-      display.selected !== lastScreen.selected || (display.page === null) !== (lastScreen.page === null) ||
       display.powered !== lastScreen.powered)) {
       tuneDirection = Math.sign(display.selected - lastScreen.selected || (display.page ?? -1) - (lastScreen.page ?? -1)) || 1;
       tuneStarted = now;
@@ -268,7 +277,8 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     glass.setTracking(tracking, tuneDirection);
     if (!lastScreen || lastScreen.events !== display.events || lastScreen.position !== position ||
       lastScreen.selected !== state.selected || lastScreen.page !== state.page ||
-      lastScreen.pagePosition !== pagePosition || lastScreen.showEvents !== display.showEvents ||
+      lastScreen.pagePosition !== pagePosition || lastScreen.detailMix !== detailMix ||
+      lastScreen.motion !== motion || lastScreen.showEvents !== display.showEvents ||
       lastScreen.powered !== state.powered || lastScreen.tapeHover?.index !== hover?.index ||
       lastScreen.tapeHover?.lean !== hover?.lean ||
       lastScreen.tapeHover?.amount !== hover?.amount) {
@@ -283,7 +293,9 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
       button.style.left = `${(local.x + 1) * 50}%`;
       button.style.top = `${(1 - local.y) * 50}%`;
     }
-    if (position !== state.position || (hover && hover.amount !== (tapeIndex === null ? 0 : 1)) || pagePosition !== (state.page ?? 0) ||
+    if ((stageVisible && state.powered && !prefersReducedMotion.matches && !document.hidden) ||
+      detailMix !== detailTarget || motion !== 0 || position !== state.position ||
+      (hover && hover.amount !== (tapeIndex === null ? 0 : 1)) || pagePosition !== pageTarget ||
       grab.x !== grab.targetX || grab.y !== grab.targetY || entrance !== entranceTarget ||
       focus !== focusTarget || tracking < 1) invalidate();
   }
@@ -306,6 +318,14 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     invalidate();
   });
   observer.observe(stage);
+  const visibility = new IntersectionObserver(([entry]) => {
+    stageVisible = entry.isIntersecting;
+    lastFrameTime = undefined;
+    if (stageVisible) invalidate();
+  });
+  visibility.observe(stage);
+  const resume = () => { if (!document.hidden) invalidate(); };
+  document.addEventListener('visibilitychange', resume);
   window.addEventListener('scroll', invalidate, { passive: true });
   window.addEventListener('resize', invalidate);
   prefersReducedMotion.addEventListener('change', invalidate);
@@ -313,6 +333,8 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     photoSource.onload = null;
     cancelAnimationFrame(frame);
     observer.disconnect();
+    visibility.disconnect();
+    document.removeEventListener('visibilitychange', resume);
     window.removeEventListener('scroll', invalidate);
     window.removeEventListener('resize', invalidate);
     prefersReducedMotion.removeEventListener('change', invalidate);

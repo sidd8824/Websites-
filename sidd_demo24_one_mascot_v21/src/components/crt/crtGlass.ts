@@ -11,17 +11,23 @@ export function glassUV(u: number, v: number) {
 
 export function createGlassMaterial(map: Texture) {
   const time = { value: 0 };
+  const clock = { value: 0 };
+  const motion = { value: 0 };
   const interference = { value: 0 };
   const direction = { value: 1 };
   const material = new MeshBasicMaterial({ map, toneMapped: false });
 
   material.onBeforeCompile = shader => {
     shader.uniforms.crtTime = time;
+    shader.uniforms.crtClock = clock;
+    shader.uniforms.crtMotion = motion;
     shader.uniforms.crtInterference = interference;
     shader.uniforms.crtDirection = direction;
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <map_pars_fragment>', `#include <map_pars_fragment>
         uniform float crtTime;
+        uniform float crtClock;
+        uniform float crtMotion;
         uniform float crtInterference;
         uniform float crtDirection;
         float tubeNoise(vec2 p) { return fract(sin(dot(p,vec2(127.1,311.7))) * 43758.5453); }
@@ -33,25 +39,34 @@ export function createGlassMaterial(map: Texture) {
           float row = floor(curved.y * 32.);
           float trackingOffset = (curved.y - crtTime) * 10.;
           float tracking = exp(-trackingOffset * trackingOffset);
-          float shift = (tubeNoise(vec2(row, 4.)) - .38) * .033 * tracking * crtInterference;
+          float shift = (tubeNoise(vec2(row, 4.)) - .38) * .006 * tracking * crtInterference;
           curved.x += shift * crtDirection;
-          vec2 fringe = vec2(crtInterference * tracking * .0045, 0.);
+          vec2 fringe = vec2(crtInterference * tracking * .0015, 0.);
           vec3 image = vec3(texture2D(map, curved + fringe).r, texture2D(map, curved).g,
             texture2D(map, curved - fringe).b);
           float border = max(abs(curved.x - .5), abs(curved.y - .5));
           // Keep the printed sleeves sharp; the phosphor texture is drawn behind them.
           float falloff = 1. - .38 * smoothstep(.43, .71, length(centered));
           float reflectionOffset = (centered.y + .39 + centered.x * .04) * 24.;
-          float reflection = exp(-reflectionOffset * reflectionOffset) * .018;
+          float sweepX = centered.x + sin(crtClock * .11) * .32 + crtMotion * .05;
+          float glassSweep = exp(-pow((sweepX + centered.y * .22) * 8., 2.)) * .002;
+          float edgeGrain = (tubeNoise(floor(curved * vec2(1400., 1000.))
+            + floor(crtClock * 12.)) - .5) * .003;
+          float rollingBand = exp(-pow((fract(curved.y - crtClock * .035) - .5) * 24., 2.)) * .003;
+          float reflection = exp(-reflectionOffset * reflectionOffset) * .006;
           float edge = 1. - smoothstep(.478, .515, border);
-          diffuseColor.rgb *= (image * falloff + reflection
-            + tracking * crtInterference * .025) * edge + .001;
+          diffuseColor.rgb *= (image * falloff + reflection + glassSweep + edgeGrain + rollingBand
+            + tracking * crtInterference * .008) * edge + .001;
         #endif
       `);
   };
 
   return {
     material,
+    setFrame(seconds: number, speed: number) {
+      clock.value = seconds;
+      motion.value = speed;
+    },
     setTracking(progress: number, sign: number) {
       time.value = progress;
       interference.value = progress >= 1 ? 0 : 1 - progress;
