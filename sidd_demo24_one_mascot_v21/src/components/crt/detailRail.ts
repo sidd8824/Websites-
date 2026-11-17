@@ -14,6 +14,7 @@ export function detailChapter(value: number) {
 const samples = {
   'B/Algo': {
     photo: 0,
+    coverTitle: 'Graph Heats',
     headline: 'Find the shortest way through.',
     summary: 'Work through a warm-up graph, then try a timed round in pairs. Bring a laptop and use the language you know best.',
     agenda: ['18:00 · Sketch a solution', '18:25 · Pair up for the heats', '19:15 · Compare approaches'],
@@ -22,6 +23,7 @@ const samples = {
   },
   'B/Uild': {
     photo: 1,
+    coverTitle: 'Quadcopter Bootcamp',
     headline: 'Get a quad off the workbench.',
     summary: 'From a bare board to a bench-tested quadcopter. Work in small teams with a mentor at each soldering station.',
     agenda: ['14:00 · Bench safety', '14:25 · Solder the ESC leads', '15:40 · Test continuity and motor direction'],
@@ -30,6 +32,7 @@ const samples = {
   },
   'B/Dev': {
     photo: 2,
+    coverTitle: 'Rust & WebAssembly',
     headline: 'Run native code in the browser.',
     summary: 'Build a small Rust module, compile it to WebAssembly, and wire it into a browser demo you can share.',
     agenda: ['17:00 · Set up the toolchain', '17:35 · Compile a Rust module', '18:25 · Show the browser demo'],
@@ -44,6 +47,7 @@ export function sampleDetail(event: ClubEvent) {
   }
   return {
     ...samples['B/Dev'],
+    coverTitle: event.title,
     headline: event.title,
     summary: event.note,
   };

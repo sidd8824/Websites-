@@ -58,33 +58,68 @@ function coverArt(ctx: CanvasRenderingContext2D, x: number, y: number, width: nu
   ctx.restore();
 }
 
-function tape(ctx: CanvasRenderingContext2D, event: ClubEvent, index: number, offset: number) {
+function drawPhoto(ctx: CanvasRenderingContext2D, photo: HTMLImageElement, column: number, row: number,
+  x: number, y: number, width: number, height: number) {
+  // Crop inside one cell of the three-column, two-row photo sheet.
+  const cellWidth = photo.naturalWidth / 3;
+  const cellHeight = photo.naturalHeight / 2;
+  const scale = Math.max(width / (cellWidth - 4), height / (cellHeight - 4));
+  const sourceWidth = width / scale;
+  const sourceHeight = height / scale;
+  ctx.drawImage(photo, (column + .5) * cellWidth - sourceWidth / 2,
+    (row + .5) * cellHeight - sourceHeight / 2, sourceWidth, sourceHeight, x, y, width, height);
+}
+
+function tape(ctx: CanvasRenderingContext2D, event: ClubEvent, index: number, offset: number, photo: HTMLImageElement | null) {
   const distance = Math.abs(offset);
   if (distance > 2) return;
   const scale = 1 - Math.min(.34, distance * .16);
   const color = eventColor(event);
+  const sample = sampleDetail(event);
   ctx.save();
   ctx.translate(512 + offset * 285, 358 + distance * 15);
   ctx.rotate(offset * .14);
   ctx.scale(scale, scale);
   ctx.globalAlpha = 1 - Math.min(.73, distance * .34);
-  ctx.fillStyle = '#090c0a';
-  ctx.fillRect(-106, -167, 224, 364);
-  ctx.fillStyle = '#242b26';
-  ctx.fillRect(-63, -196, 126, 28);
-  ctx.fillStyle = '#141b18';
-  ctx.fillRect(-112, -178, 224, 364);
+
+  ctx.fillStyle = '#080b09';
+  ctx.fillRect(-105, -172, 230, 368);
+  ctx.fillStyle = '#292f2b';
+  ctx.fillRect(-64, -193, 128, 24);
+  ctx.fillStyle = '#111915';
+  ctx.fillRect(-114, -181, 228, 366);
   ctx.strokeStyle = color;
-  ctx.lineWidth = 2;
-  ctx.strokeRect(-111, -177, 222, 362);
-  text(ctx, 'B/STACK EVENT TAPE', -98, -150, 16, MUTED);
-  rule(ctx, -98, -138, 196, color);
+  ctx.lineWidth = distance < .25 ? 2 : 1.25;
+  ctx.strokeRect(-113, -180, 226, 364);
+
+  ctx.fillStyle = '#27322a';
+  ctx.fillRect(-104, -143, 208, 182);
+  if (photo) {
+    drawPhoto(ctx, photo, sample.photo, sample.photo === 1 ? 1 : 0, -104, -143, 208, 182);
+  } else {
+    coverArt(ctx, -93, -112, 186, 120, index, color);
+  }
+  const shade = ctx.createLinearGradient(0, -143, 0, 39);
+  shade.addColorStop(0, '#10171008');
+  shade.addColorStop(1, '#0b130cc4');
+  ctx.fillStyle = shade;
+  ctx.fillRect(-104, -143, 208, 182);
+  rule(ctx, -104, 39, 208, color);
+
+  text(ctx, 'B/STACK', -102, -155, 15, PAPER);
+  ctx.textAlign = 'right';
+  text(ctx, String(index + 1).padStart(2, '0'), 101, -155, 15, color);
+  ctx.textAlign = 'left';
+
   ctx.font = 'bold 32px Georgia, serif';
-  const rows = lines(ctx, event.title.replace(/^B\/\w+:\s*/i, ''), 195);
-  rows.slice(0, 4).forEach((row, i) => text(ctx, row, -98, -98 + i * 33, 32, PAPER, true, 196));
-  coverArt(ctx, -98, 43, 196, 91, index, color);
-  rule(ctx, -98, 141, 196, color);
-  text(ctx, event.vertical.toUpperCase(), -98, 165, 18, color);
+  const rows = lines(ctx, sample.coverTitle, 199);
+  rows.slice(0, 2).forEach((row, i) => text(ctx, row, -101, 82 + i * 34, 32, PAPER, true, 202));
+  rule(ctx, -101, 135, 202, color);
+  text(ctx, event.vertical.toUpperCase(), -101, 161, 17, color);
+  if (distance < .25) {
+    ctx.textAlign = 'right';
+    text(ctx, 'OPEN ›', 100, 161, 13, MUTED);
+  }
   ctx.restore();
 }
 
@@ -95,14 +130,7 @@ function framedPhoto(ctx: CanvasRenderingContext2D, photo: HTMLImageElement | nu
   ctx.fillStyle = '#151e18';
   ctx.fillRect(x, top, width, height);
   if (photo) {
-    // The source is a three by two contact sheet. Trim the adjacent-cell seams.
-    const cellWidth = photo.naturalWidth / 3;
-    const cellHeight = photo.naturalHeight / 2;
-    const scale = Math.max(width / (cellWidth - 4), height / (cellHeight - 4));
-    const sourceWidth = width / scale;
-    const sourceHeight = height / scale;
-    ctx.drawImage(photo, (column + .5) * cellWidth - sourceWidth / 2,
-      (row + .5) * cellHeight - sourceHeight / 2, sourceWidth, sourceHeight, x, top, width, height);
+    drawPhoto(ctx, photo, column, row, x, top, width, height);
   } else {
     coverArt(ctx, x + 24, top + 48, width - 48, height - 96, column, color);
   }
@@ -179,7 +207,7 @@ export function drawEventScreen(ctx: CanvasRenderingContext2D, state: ScreenStat
   } else if (page === null) {
     events.map((item, index) => ({ item, index, offset: index - position }))
       .sort((a, b) => Math.abs(b.offset) - Math.abs(a.offset))
-      .forEach(({ item, index, offset }) => tape(ctx, item, index, offset));
+      .forEach(({ item, index, offset }) => tape(ctx, item, index, offset, photo));
     ctx.textAlign = 'center';
     text(ctx, event.title, 512, 607, 38, PAPER, true, 855);
     text(ctx, event.dateStr, 512, 648, 24, color, false, 855);
