@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ClubEvent } from '../../data/club';
 import type { mountMonitor } from './mountMonitor';
+import { clampTape, settleTape } from './tapeMotion';
 import type { ScreenState } from './eventScreen';
 import { DETAIL_CHAPTERS, DETAIL_END, detailChapter, detailPosition, sampleDetail } from './detailRail';
 import { docTop, scrollToY } from '../../utils/scroll';
@@ -20,12 +21,14 @@ export default function CrtEventBrowser({ events }: Props) {
   const [browsing, setBrowsing] = useState(false);
   const [page, setPage] = useState<number | null>(null);
   const [load, setLoad] = useState<'waiting' | 'ready' | 'fallback'>('waiting');
-  const index = Math.min(selected, Math.max(0, events.length - 1));
+  const index = clampTape(Math.round(selected), events.length);
   const event = events[index];
-  const state = useRef<ScreenState>({ events, selected: index, page, position: index, pagePosition: page ?? 0, showEvents: browsing, powered });
-  const gesture = useRef<{ x: number; y: number; id: number; mode: 'screen' | 'cabinet'; detailStart: number | null } | null>(null);
+  const state = useRef<ScreenState>({ events, selected: index, page, position: clampTape(selected, events.length), pagePosition: page ?? 0, showEvents: browsing, powered });
+  const gesture = useRef<{ x: number; y: number; id: number; mode: 'screen' | 'cabinet'; detailStart: number | null; tapeStart: number | null } | null>(null);
   const suppressClick = useRef(0);
+  const pointerOnMonitor = useRef(false);
   const alignUntil = useRef(0);
+  const settleTimer = useRef<number | undefined>(undefined);
   const dispatch = useRef<(step: number) => void>(() => {});
 
   function beginBrowsing() {
@@ -46,6 +49,8 @@ export default function CrtEventBrowser({ events }: Props) {
   }
 
   function resetMonitor() {
+    window.clearTimeout(settleTimer.current);
+    settleTimer.current = undefined;
     setPage(null);
     setSelected(0);
     setBrowsing(false);
@@ -56,15 +61,19 @@ export default function CrtEventBrowser({ events }: Props) {
   function advance(step: number) {
     if (!powered) return;
     if (!browsing) { beginBrowsing(); return; }
-    if (page === null) setSelected(Math.max(0, Math.min(events.length - 1, index + step)));
+    if (page === null) {
+      window.clearTimeout(settleTimer.current);
+      settleTimer.current = undefined;
+      setSelected(clampTape(index + step, events.length));
+    }
     else setPage(detailPosition(step < 0 ? Math.ceil(page) - 1 : Math.floor(page) + 1));
   }
 
   useEffect(() => {
-    state.current = { events, selected: index, page, position: index, pagePosition: page ?? 0, showEvents: browsing, powered };
+    state.current = { events, selected: index, page, position: clampTape(selected, events.length), pagePosition: page ?? 0, showEvents: browsing, powered };
     dispatch.current = advance;
     monitor.current?.invalidate();
-  }, [events, index, page, browsing, powered]);
+  }, [events, index, selected, page, browsing, powered]);
 
   useEffect(() => {
     const element = stage.current;
@@ -89,6 +98,7 @@ export default function CrtEventBrowser({ events }: Props) {
     let total = 0;
     let last = -Infinity;
     let stepped = -Infinity;
+    let wheelOrigin = 0;
     let returnUntil = -Infinity;
     const onWheel = (e: WheelEvent) => {
       if (e.ctrlKey || e.metaKey) return;
@@ -115,6 +125,18 @@ export default function CrtEventBrowser({ events }: Props) {
         setPage(value => value === null ? null : detailPosition(value + movement / 720));
         return;
       }
+      if (state.current.showEvents) {
+        if (now - stepped < 240) return;
+
+        if (settleTimer.current === undefined) wheelOrigin = state.current.position;
+        window.clearTimeout(settleTimer.current);
+        setSelected(value => clampTape(value + movement / 440, state.current.events.length));
+        settleTimer.current = window.setTimeout(() => {
+          settleTimer.current = undefined;
+          setSelected(value => settleTape(value, wheelOrigin, state.current.events.length));
+        }, 150);
+        return;
+      }
       if (now - stepped < 240) return;
       if (now - last > 200 || Math.sign(total) !== Math.sign(delta)) total = 0;
       last = now;
@@ -137,6 +159,8 @@ export default function CrtEventBrowser({ events }: Props) {
     input.addEventListener('wheel', onWheel, { passive: false });
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => {
+      window.clearTimeout(settleTimer.current);
+      settleTimer.current = undefined;
       visibility.disconnect();
       controller.abort();
       monitor.current = null;
@@ -149,7 +173,12 @@ export default function CrtEventBrowser({ events }: Props) {
   const toggle = () => {
     if (!powered) return;
     if (!browsing) beginBrowsing();
-    else setPage(current => current === null ? 0 : null);
+    else {
+      window.clearTimeout(settleTimer.current);
+      settleTimer.current = undefined;
+      setSelected(index);
+      setPage(current => current === null ? 0 : null);
+    }
   };
   const detail = page !== null;
   const chapter = detailChapter(page ?? 0);
@@ -173,24 +202,40 @@ export default function CrtEventBrowser({ events }: Props) {
         onPointerDown={e => {
           if (!e.isPrimary || e.button !== 0) return;
           const mode = monitor.current?.hit(e.clientX, e.clientY)?.kind;
+          pointerOnMonitor.current = mode !== undefined;
           if (mode !== 'cabinet' && mode !== 'screen') return;
-          gesture.current = { x: e.clientX, y: e.clientY, id: e.pointerId, mode, detailStart: page };
+          window.clearTimeout(settleTimer.current);
+          settleTimer.current = undefined;
+          monitor.current?.hoverTape(null);
+          gesture.current = {
+            x: e.clientX, y: e.clientY, id: e.pointerId, mode, detailStart: page,
+            tapeStart: browsing && page === null && powered ? selected : null,
+          };
           e.currentTarget.setPointerCapture(e.pointerId);
           e.currentTarget.dataset.grabbing = 'true';
         }}
         onPointerMove={e => {
           const start = gesture.current;
-          if (start?.id !== e.pointerId) return;
+          if (!start || start.id !== e.pointerId) {
+            if (e.pointerType === 'mouse' && browsing && !detail && powered) {
+              const hit = monitor.current?.hit(e.clientX, e.clientY);
+              monitor.current?.hoverTape(hit?.kind === 'screen' ? hit.uv : null);
+            }
+            return;
+          }
+          const dx = start.x - e.clientX;
+          const dy = start.y - e.clientY;
           if (start.mode === 'cabinet') {
-            monitor.current?.moveGrab(e.clientX - start.x, start.y - e.clientY);
-          } else if (powered && start.detailStart !== null) {
-            const dx = start.x - e.clientX;
-            const dy = start.y - e.clientY;
-            if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
+            monitor.current?.moveGrab(-dx, dy);
+          } else if (powered && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
+            if (start.detailStart !== null) {
               setPage(detailPosition(start.detailStart + dx / (e.currentTarget.clientWidth * .52)));
+            } else if (start.tapeStart !== null && Math.abs(dx) > 12) {
+              setSelected(clampTape(start.tapeStart + dx / (e.currentTarget.clientWidth * .26), events.length));
             }
           }
         }}
+        onPointerLeave={() => monitor.current?.hoverTape(null)}
         onPointerUp={e => {
           const start = gesture.current;
           if (start?.id !== e.pointerId) return;
@@ -201,8 +246,14 @@ export default function CrtEventBrowser({ events }: Props) {
           if (start.mode === 'cabinet') monitor.current?.moveGrab(0, 0);
           if (Math.hypot(dx, dy) > 12) {
             suppressClick.current = performance.now() + 400;
-            if (start.mode === 'screen' && start.detailStart === null && Math.abs(dx) > 28 && Math.abs(dx) > Math.abs(dy)) {
-              advance(Math.sign(dx));
+            if (start.mode === 'screen' && start.detailStart === null && Math.abs(dx) > Math.abs(dy)) {
+              if (start.tapeStart === null) {
+                if (Math.abs(dx) > 28) advance(Math.sign(dx));
+              }
+              else setSelected(settleTape(
+                clampTape(start.tapeStart + dx / (e.currentTarget.clientWidth * .26), events.length),
+                start.tapeStart, events.length,
+              ));
             }
           }
         }}
@@ -211,9 +262,10 @@ export default function CrtEventBrowser({ events }: Props) {
           gesture.current = null;
           delete e.currentTarget.dataset.grabbing;
           monitor.current?.moveGrab(0, 0);
+          if (browsing && !detail) setSelected(value => Math.round(value));
         }}
         onClick={e => {
-          if (e.target instanceof HTMLButtonElement || performance.now() < suppressClick.current) return;
+          if (!pointerOnMonitor.current || e.target instanceof HTMLButtonElement || performance.now() < suppressClick.current) return;
           const hit = monitor.current?.hit(e.clientX, e.clientY);
           if (!hit) return;
           if (hit.kind === 'power') { setPowered(value => !value); return; }
@@ -229,9 +281,14 @@ export default function CrtEventBrowser({ events }: Props) {
             if (y > .80 && x > .74) advance(x < .86 ? -1 : 1);
           } else if (y < .20 && x < .48) {
             resetMonitor();
-          } else if (y > .20 && y < .78) {
-            if (x > .35 && x < .65) toggle();
-            else advance(x < .5 ? -1 : 1);
+          } else {
+            const tape = monitor.current?.tapeUnder(hit.uv);
+            if (tape === index) toggle();
+            else if (tape != null) {
+              window.clearTimeout(settleTimer.current);
+              settleTimer.current = undefined;
+              setSelected(tape);
+            }
           }
         }}>
         {load !== 'ready' && powered && (

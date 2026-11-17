@@ -1,3 +1,4 @@
+import { tapePose } from './tapeMotion';
 import type { ClubEvent } from '../../data/club';
 import { DETAIL_CHAPTERS, DETAIL_END, detailChapter, sampleDetail } from './detailRail';
 
@@ -70,17 +71,17 @@ function drawPhoto(ctx: CanvasRenderingContext2D, photo: HTMLImageElement, colum
     (row + .5) * cellHeight - sourceHeight / 2, sourceWidth, sourceHeight, x, y, width, height);
 }
 
-function tape(ctx: CanvasRenderingContext2D, event: ClubEvent, index: number, offset: number, photo: HTMLImageElement | null) {
+function tape(ctx: CanvasRenderingContext2D, event: ClubEvent, index: number, offset: number, photo: HTMLImageElement | null, hover: number) {
   const distance = Math.abs(offset);
   if (distance > 2) return;
-  const scale = 1 - Math.min(.34, distance * .16);
+  const pose = tapePose(offset, hover);
   const color = eventColor(event);
   const sample = sampleDetail(event);
   ctx.save();
-  ctx.translate(512 + offset * 285, 358 + distance * 15);
-  ctx.rotate(offset * .14);
-  ctx.scale(scale, scale);
-  ctx.globalAlpha = 1 - Math.min(.73, distance * .34);
+  ctx.translate(pose.x, pose.y);
+  ctx.rotate(pose.rotation);
+  ctx.scale(pose.scale, pose.scale);
+  ctx.globalAlpha = pose.alpha;
 
   ctx.fillStyle = '#080b09';
   ctx.fillRect(-105, -172, 230, 368);
@@ -175,10 +176,11 @@ export interface ScreenState {
   pagePosition: number;
   showEvents: boolean;
   powered: boolean;
+  tapeHover?: { index: number; x: number; y: number; amount: number };
 }
 
 export function drawEventScreen(ctx: CanvasRenderingContext2D, state: ScreenState, photo: HTMLImageElement | null = null) {
-  const { events, selected, position, page, pagePosition, showEvents } = state;
+  const { events, selected, position, page, pagePosition, showEvents, tapeHover } = state;
   const event = events[selected];
   const color = eventColor(event);
   const gradient = ctx.createRadialGradient(500, 344, 0, 512, 384, 670);
@@ -207,12 +209,25 @@ export function drawEventScreen(ctx: CanvasRenderingContext2D, state: ScreenStat
   } else if (page === null) {
     events.map((item, index) => ({ item, index, offset: index - position }))
       .sort((a, b) => Math.abs(b.offset) - Math.abs(a.offset))
-      .forEach(({ item, index, offset }) => tape(ctx, item, index, offset, photo));
+      .forEach(({ item, index, offset }) => tape(ctx, item, index, offset, photo, tapeHover?.index === index ? tapeHover.amount : 0));
     ctx.textAlign = 'center';
     text(ctx, event.title, 512, 607, 38, PAPER, true, 855);
     text(ctx, event.dateStr, 512, 648, 24, color, false, 855);
     text(ctx, 'SCROLL SIDEWAYS  /  SELECT TAPE TO OPEN', 512, 689, 19, MUTED);
     ctx.textAlign = 'left';
+    if (tapeHover && tapeHover.amount > 0) {
+      const label = tapeHover.index === selected ? '› OPEN EVENT' : '› SELECT TAPE';
+      const x = Math.min(772, tapeHover.x + 18);
+      const y = Math.min(552, Math.max(157, tapeHover.y - 13)) + (1 - tapeHover.amount) * 8;
+      ctx.save();
+      ctx.globalAlpha = tapeHover.amount;
+      ctx.fillStyle = '#0a100de8';
+      ctx.fillRect(x, y - 22, 169, 31);
+      ctx.strokeStyle = eventColor(events[tapeHover.index]);
+      ctx.strokeRect(x, y - 22, 169, 31);
+      text(ctx, label, x + 10, y, 17, PAPER);
+      ctx.restore();
+    }
   } else {
     ctx.save();
     ctx.beginPath();

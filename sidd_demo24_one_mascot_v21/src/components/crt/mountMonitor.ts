@@ -4,6 +4,7 @@ import {
   Texture, Vector2, Vector3, WebGLRenderer,
 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { tapeAt } from './tapeMotion';
 import { drawEventScreen, SCREEN_HEIGHT, SCREEN_WIDTH, type ScreenState } from './eventScreen';
 import { createGlassMaterial, glassUV } from './crtGlass';
 import { createPushRobot } from './pushRobot';
@@ -163,12 +164,13 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     x,
   }));
   let lastScreen: ScreenState | undefined;
-  let position = getState().selected;
+  let position = getState().position;
+  let tapePointer: { x: number; y: number } | null = null;
+  let hover: ScreenState['tapeHover'];
   let pagePosition = getState().page ?? 0;
   let frame = 0;
   let entrance = 0;
   let focus = 0;
-  let slide = { from: position, to: position, start: 0 };
   let lastFrameTime: number | undefined;
   let photos: HTMLImageElement | null = null;
   const photoSource = new Image();
@@ -195,12 +197,6 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
   const approach = (from: number, to: number) =>
     prefersReducedMotion.matches || Math.abs(from - to) < .002 ? to : from + (to - from) * .24;
 
-  function rail(motion: typeof slide, current: number, target: number, now: number, duration: number) {
-    if (motion.to !== target) Object.assign(motion, { from: current, to: target, start: now });
-    const t = prefersReducedMotion.matches ? 1 : Math.min(1, (now - motion.start) / duration);
-    return t === 1 ? target : motion.from + (target - motion.from) * (1 - (1 - t) ** 3);
-  }
-
   function render(now: number) {
     frame = 0;
     const ratio = stage.clientWidth / viewHeight;
@@ -226,12 +222,26 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     robotShadow.position.set(pusher.robot.position.x - .18, -.022, .69);
     camera.position.set(pose.cameraX, pose.cameraY, pose.cameraZ);
     camera.lookAt(pose.aimX, pose.aimY, pose.aimZ);
-    position = rail(slide, position, state.selected, now, 440);
     if (lastScreen?.page === null && state.page !== null) {
       pagePosition = state.page;
     }
     const dt = lastFrameTime === undefined ? 16.7 : Math.min(40, now - lastFrameTime);
     lastFrameTime = now;
+    const damp = (from: number, to: number, duration: number) =>
+      prefersReducedMotion.matches || Math.abs(from - to) < .001
+        ? to
+        : from + (to - from) * (1 - Math.exp(-dt / duration));
+    position = damp(position, state.position, 92);
+    const tapeIndex = state.powered && state.showEvents && state.page === null && tapePointer
+      ? tapeAt(tapePointer.x, tapePointer.y, position, state.events.length)
+      : null;
+    if (tapeIndex !== null && tapePointer) {
+      hover = { index: tapeIndex, x: tapePointer.x, y: tapePointer.y,
+        amount: damp(hover?.index === tapeIndex ? hover.amount : 0, 1, 56) };
+    } else if (hover) {
+      const amount = damp(hover.amount, 0, 48);
+      hover = amount === 0 ? undefined : { ...hover, amount };
+    }
     const pageTarget = state.page ?? 0;
     pagePosition = prefersReducedMotion.matches || Math.abs(pagePosition - pageTarget) < .001
       ? pageTarget
@@ -243,7 +253,7 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
         light.emissiveIntensity = state.powered ? .75 : 0;
       }
     }
-    const display = { ...state, position, pagePosition, showEvents: state.showEvents && focus > .38 };
+    const display = { ...state, position, pagePosition, tapeHover: hover, showEvents: state.showEvents && focus > .38 };
     if (lastScreen && (display.showEvents !== lastScreen.showEvents ||
       display.selected !== lastScreen.selected || (display.page === null) !== (lastScreen.page === null) ||
       display.powered !== lastScreen.powered)) {
@@ -255,7 +265,9 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     if (!lastScreen || lastScreen.events !== display.events || lastScreen.position !== position ||
       lastScreen.selected !== state.selected || lastScreen.page !== state.page ||
       lastScreen.pagePosition !== pagePosition || lastScreen.showEvents !== display.showEvents ||
-      lastScreen.powered !== state.powered) {
+      lastScreen.powered !== state.powered || lastScreen.tapeHover?.index !== hover?.index ||
+      lastScreen.tapeHover?.x !== hover?.x || lastScreen.tapeHover?.y !== hover?.y ||
+      lastScreen.tapeHover?.amount !== hover?.amount) {
       drawEventScreen(context, display, photos);
       texture.needsUpdate = true;
       lastScreen = display;
@@ -267,7 +279,7 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
       button.style.left = `${(local.x + 1) * 50}%`;
       button.style.top = `${(1 - local.y) * 50}%`;
     }
-    if (position !== state.selected || pagePosition !== (state.page ?? 0) ||
+    if (position !== state.position || (hover && hover.amount !== (tapeIndex === null ? 0 : 1)) || pagePosition !== (state.page ?? 0) ||
       grab.x !== grab.targetX || grab.y !== grab.targetY || entrance !== entranceTarget ||
       focus !== focusTarget || tracking < 1) invalidate();
   }
@@ -320,6 +332,13 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
   };
   return {
     invalidate,
+    hoverTape(uv: { x: number; y: number } | null) {
+      tapePointer = uv ? { x: uv.x * SCREEN_WIDTH, y: uv.y * SCREEN_HEIGHT } : null;
+      invalidate();
+    },
+    tapeUnder(uv: { x: number; y: number }) {
+      return tapeAt(uv.x * SCREEN_WIDTH, uv.y * SCREEN_HEIGHT, position, getState().events.length);
+    },
     moveGrab(dx: number, dy: number) {
       const scale = Math.max(100, viewHeight * .34);
       grab.targetX = Math.max(-1, Math.min(1, dx / scale));
