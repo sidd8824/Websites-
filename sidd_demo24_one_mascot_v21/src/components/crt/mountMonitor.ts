@@ -9,6 +9,62 @@ import { createPushRobot } from './pushRobot';
 import { scrollPose } from './scrollPose';
 import modelUrl from './relay-14.glb?url';
 
+function labelCabinet(controls: NonNullable<ReturnType<Scene['getObjectByName']>>) {
+  const buttonY = .748;
+  const faceZ = (x: number) => 1.472 - .041 * (x / 1.73) ** 2 - .029 * ((buttonY - 1.84) / 1.45) ** 2;
+  function mark(x: number, z: number, width: number, height: number, ink: string,
+    draw: (ctx: CanvasRenderingContext2D) => void) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.strokeStyle = ctx.fillStyle = ink;
+    ctx.lineWidth = 13;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    draw(ctx);
+    const map = new CanvasTexture(canvas);
+    map.colorSpace = SRGBColorSpace;
+    const label = new Mesh(
+      new PlaneGeometry(width, height),
+      new MeshBasicMaterial({ map, transparent: true, depthWrite: false, toneMapped: false }),
+    );
+    label.position.set(x, buttonY, z);
+    // The printed marks pass pointer hits through to the molded buttons below.
+    label.raycast = () => {};
+    controls.add(label);
+  }
+
+  for (const [x, direction] of [[-.15, -1], [.28, 1]]) {
+    mark(x, faceZ(x) + .0245, .062, .062, '#373027', ctx => {
+      ctx.translate(64, 64);
+      ctx.scale(direction, 1);
+      ctx.beginPath();
+      ctx.moveTo(-40, 0);
+      ctx.lineTo(40, 0);
+      ctx.moveTo(12, -27);
+      ctx.lineTo(40, 0);
+      ctx.lineTo(12, 27);
+      ctx.stroke();
+    });
+  }
+  mark(.066, faceZ(0) + .0345, .108, .043, '#373027', ctx => {
+    ctx.font = '900 83px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('OK', 64, 68, 120);
+  });
+  mark(1.28, faceZ(1.28) + .0475, .108, .108, '#e2b77c', ctx => {
+    ctx.lineWidth = 9;
+    ctx.beginPath();
+    ctx.arc(64, 67, 33, -Math.PI / 3, 4 * Math.PI / 3);
+    ctx.moveTo(64, 18);
+    ctx.lineTo(64, 54);
+    ctx.stroke();
+  });
+}
+
 export async function mountMonitor(stage: HTMLDivElement, getState: () => ScreenState, signal: AbortSignal) {
   const source = await fetch(modelUrl, { signal });
   if (!source.ok) throw Error('Monitor model could not be loaded');
@@ -89,6 +145,7 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
   const indicator = monitor.getObjectByName('Green_power_indicator') as Mesh | undefined;
   const light = indicator?.material instanceof MeshStandardMaterial ? indicator.material : undefined;
   const frontControls = monitor.getObjectByName('Front_controls');
+  if (frontControls) labelCabinet(frontControls);
 
   const prefersReducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const ray = new Raycaster();
