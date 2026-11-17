@@ -4,7 +4,7 @@ import {
   Texture, Vector2, Vector3, WebGLRenderer,
 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { tapeAt } from './tapeMotion';
+import { tapeAt, tapePose } from './tapeMotion';
 import { drawEventScreen, SCREEN_HEIGHT, SCREEN_WIDTH, type ScreenState } from './eventScreen';
 import { createGlassMaterial, glassUV } from './crtGlass';
 import { createPushRobot } from './pushRobot';
@@ -236,7 +236,8 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
       ? tapeAt(tapePointer.x, tapePointer.y, position, state.events.length)
       : null;
     if (tapeIndex !== null && tapePointer) {
-      hover = { index: tapeIndex, x: tapePointer.x, y: tapePointer.y,
+      const lean = Math.max(-.5, Math.min(.5, (tapePointer.x - tapePose(tapeIndex - position).x) / 228));
+      hover = { index: tapeIndex, lean,
         amount: damp(hover?.index === tapeIndex ? hover.amount : 0, 1, 56) };
     } else if (hover) {
       const amount = damp(hover.amount, 0, 48);
@@ -266,7 +267,7 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
       lastScreen.selected !== state.selected || lastScreen.page !== state.page ||
       lastScreen.pagePosition !== pagePosition || lastScreen.showEvents !== display.showEvents ||
       lastScreen.powered !== state.powered || lastScreen.tapeHover?.index !== hover?.index ||
-      lastScreen.tapeHover?.x !== hover?.x || lastScreen.tapeHover?.y !== hover?.y ||
+      lastScreen.tapeHover?.lean !== hover?.lean ||
       lastScreen.tapeHover?.amount !== hover?.amount) {
       drawEventScreen(context, display, photos);
       texture.needsUpdate = true;

@@ -71,55 +71,116 @@ function drawPhoto(ctx: CanvasRenderingContext2D, photo: HTMLImageElement, colum
     (row + .5) * cellHeight - sourceHeight / 2, sourceWidth, sourceHeight, x, y, width, height);
 }
 
-function tape(ctx: CanvasRenderingContext2D, event: ClubEvent, index: number, offset: number, photo: HTMLImageElement | null, hover: number) {
+function tape(ctx: CanvasRenderingContext2D, event: ClubEvent, index: number, offset: number,
+  photo: HTMLImageElement | null, hover?: ScreenState['tapeHover']) {
   const distance = Math.abs(offset);
   if (distance > 2) return;
-  const pose = tapePose(offset, hover);
-  const color = eventColor(event);
+  const lift = hover?.amount ?? 0;
+  const pose = tapePose(offset, lift);
   const sample = sampleDetail(event);
+  const isQuad = event.vertical === 'B/Uild';
+  const isRust = event.vertical === 'B/Dev';
+  const isGraph = event.vertical === 'B/Algo';
+  const paper = isQuad ? '#272c22' : isRust ? '#f1e4c9' : '#e8d3f1';
+  const stock = isQuad ? '#d8d9a1' : isRust ? '#11182a' : '#211a2d';
+  const accent = isQuad ? '#535b2c' : isRust ? '#95b4f8' : '#d5b4fd';
+
   ctx.save();
   ctx.translate(pose.x, pose.y);
-  ctx.rotate(pose.rotation);
+  ctx.rotate(pose.rotation + lift * (hover?.lean ?? 0) * .048);
   ctx.scale(pose.scale, pose.scale);
   ctx.globalAlpha = pose.alpha;
+  ctx.fillStyle = '#070906';
+  ctx.fillRect(-106, -172, 230, 368);
 
-  ctx.fillStyle = '#080b09';
-  ctx.fillRect(-105, -172, 230, 368);
-  ctx.fillStyle = '#292f2b';
-  ctx.fillRect(-64, -193, 128, 24);
-  ctx.fillStyle = '#111915';
-  ctx.fillRect(-114, -181, 228, 366);
-  ctx.strokeStyle = color;
-  ctx.lineWidth = distance < .25 ? 2 : 1.25;
-  ctx.strokeRect(-113, -180, 226, 364);
-
-  ctx.fillStyle = '#27322a';
-  ctx.fillRect(-104, -143, 208, 182);
-  if (photo) {
-    drawPhoto(ctx, photo, sample.photo, sample.photo === 1 ? 1 : 0, -104, -143, 208, 182);
-  } else {
-    coverArt(ctx, -93, -112, 186, 120, index, color);
+  // A molded cassette slides up from behind the printed sleeve when it lifts.
+  const cassetteY = -173 - (distance < .5 ? 12 : 0) - lift * 28;
+  const plastic = ctx.createLinearGradient(0, cassetteY, 0, cassetteY + 64);
+  plastic.addColorStop(0, '#45483c');
+  plastic.addColorStop(1, '#1a201a');
+  ctx.fillStyle = plastic;
+  ctx.beginPath();
+  ctx.roundRect(-78, cassetteY, 156, 61, 5);
+  ctx.fill();
+  ctx.strokeStyle = '#8e8b72';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  if (lift > .12) {
+    for (const x of [-42, 42]) {
+      ctx.fillStyle = '#121612';
+      ctx.beginPath();
+      ctx.arc(x, cassetteY + 15, 9, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.strokeStyle = '#a9a389';
+      ctx.stroke();
+      ctx.fillStyle = '#767360';
+      ctx.fillRect(x - 2, cassetteY + 12, 4, 6);
+    }
   }
-  const shade = ctx.createLinearGradient(0, -143, 0, 39);
-  shade.addColorStop(0, '#10171008');
-  shade.addColorStop(1, '#0b130cc4');
-  ctx.fillStyle = shade;
-  ctx.fillRect(-104, -143, 208, 182);
-  rule(ctx, -104, 39, 208, color);
 
-  text(ctx, 'B/STACK', -102, -155, 15, PAPER);
+  ctx.fillStyle = stock;
+  ctx.fillRect(-114, -181, 228, 366);
+  ctx.strokeStyle = isQuad ? '#f4edb5' : accent;
+  ctx.globalAlpha = pose.alpha * .52;
+  ctx.strokeRect(-113.5, -180.5, 227, 365);
+  ctx.globalAlpha = pose.alpha;
+
+  const photoX = isRust ? -113 : -98;
+  const photoY = isQuad ? -43 : -119;
+  const photoW = isRust ? 226 : 196;
+  const photoH = isQuad ? 170 : isRust ? 255 : 177;
+  ctx.fillStyle = isQuad ? '#9d9d70' : '#282e35';
+  ctx.fillRect(photoX, photoY, photoW, photoH);
+  if (photo) {
+    ctx.filter = 'grayscale(1) contrast(1.28)';
+    drawPhoto(ctx, photo, sample.photo, isQuad ? 1 : 0, photoX, photoY, photoW, photoH);
+    ctx.filter = 'none';
+  } else {
+    coverArt(ctx, photoX + 9, photoY + 21, photoW - 18, photoH - 42, index, accent);
+  }
+  const dye = ctx.createLinearGradient(photoX, photoY, photoX + photoW, photoY + photoH);
+  dye.addColorStop(0, isQuad ? '#d8d9a158' : isRust ? '#4668b592' : '#9c63c17d');
+  dye.addColorStop(1, isQuad ? '#384c2a50' : isRust ? '#07122bd1' : '#160f24d9');
+  ctx.fillStyle = dye;
+  ctx.fillRect(photoX, photoY, photoW, photoH);
+
+  text(ctx, 'B/STACK', -97, -151, 15, paper);
   ctx.textAlign = 'right';
-  text(ctx, String(index + 1).padStart(2, '0'), 101, -155, 15, color);
+  text(ctx, String(index + 1).padStart(2, '0'), 97, -151, 15, paper);
   ctx.textAlign = 'left';
+  rule(ctx, -97, -138, 194, paper + '75');
 
-  ctx.font = 'bold 32px Georgia, serif';
-  const rows = lines(ctx, sample.coverTitle, 199);
-  rows.slice(0, 2).forEach((row, i) => text(ctx, row, -101, 82 + i * 34, 32, PAPER, true, 202));
-  rule(ctx, -101, 135, 202, color);
-  text(ctx, event.vertical.toUpperCase(), -101, 161, 17, color);
-  if (distance < .25) {
-    ctx.textAlign = 'right';
-    text(ctx, 'OPEN ›', 100, 161, 13, MUTED);
+  if (isQuad) {
+    ctx.font = '900 83px Arial Black, sans-serif';
+    ctx.fillStyle = paper;
+    ctx.fillText('QUAD', -103, -57, 204);
+    ctx.fillStyle = '#d8d9a1ee';
+    ctx.fillRect(-96, -26, 178, 25);
+    text(ctx, 'SOLDERING BOOTCAMP', -91, -9, 14, paper, false, 166);
+  } else if (isRust) {
+    text(ctx, 'RUST', -105, -27, 88, paper, true, 208);
+    rule(ctx, -96, 70, 192, paper + 'a0');
+    text(ctx, 'WEBASSEMBLY', -96, 95, 22, paper, false, 192);
+    text(ctx, 'WORKSHOP', -96, 118, 22, paper, false, 192);
+  } else if (isGraph) {
+    text(ctx, 'Graph', -98, 66, 59, paper, true, 200);
+    text(ctx, 'Heats', -98, 116, 59, paper, true, 200);
+  } else {
+    ctx.font = 'bold 35px Georgia, serif';
+    lines(ctx, sample.coverTitle, 198).slice(0, 2)
+      .forEach((row, line) => text(ctx, row, -98, 80 + line * 38, 35, paper, true, 198));
+  }
+
+  rule(ctx, -97, 139, 194, paper + '75');
+  text(ctx, event.vertical.toUpperCase(), -97, 165, 15, paper);
+  ctx.textAlign = 'right';
+  text(ctx, 'VHS', 97, 165, 14, paper);
+  ctx.textAlign = 'left';
+  ctx.fillStyle = isQuad ? '#46493824' : '#e9dfbd35';
+  for (let i = 0; i < 30; i++) {
+    const x = ((i * 83) % 224) - 112;
+    const y = i % 2 ? -178 + (i % 4) : 179 - (i % 4);
+    ctx.fillRect(x, y, 1 + i % 4, .9);
   }
   ctx.restore();
 }
@@ -176,7 +237,7 @@ export interface ScreenState {
   pagePosition: number;
   showEvents: boolean;
   powered: boolean;
-  tapeHover?: { index: number; x: number; y: number; amount: number };
+  tapeHover?: { index: number; lean: number; amount: number };
 }
 
 export function drawEventScreen(ctx: CanvasRenderingContext2D, state: ScreenState, photo: HTMLImageElement | null = null) {
@@ -209,25 +270,12 @@ export function drawEventScreen(ctx: CanvasRenderingContext2D, state: ScreenStat
   } else if (page === null) {
     events.map((item, index) => ({ item, index, offset: index - position }))
       .sort((a, b) => Math.abs(b.offset) - Math.abs(a.offset))
-      .forEach(({ item, index, offset }) => tape(ctx, item, index, offset, photo, tapeHover?.index === index ? tapeHover.amount : 0));
+      .forEach(({ item, index, offset }) => tape(ctx, item, index, offset, photo, tapeHover?.index === index ? tapeHover : undefined));
     ctx.textAlign = 'center';
     text(ctx, event.title, 512, 607, 38, PAPER, true, 855);
     text(ctx, event.dateStr, 512, 648, 24, color, false, 855);
     text(ctx, 'SCROLL SIDEWAYS  /  SELECT TAPE TO OPEN', 512, 689, 19, MUTED);
     ctx.textAlign = 'left';
-    if (tapeHover && tapeHover.amount > 0) {
-      const label = tapeHover.index === selected ? '› OPEN EVENT' : '› SELECT TAPE';
-      const x = Math.min(772, tapeHover.x + 18);
-      const y = Math.min(552, Math.max(157, tapeHover.y - 13)) + (1 - tapeHover.amount) * 8;
-      ctx.save();
-      ctx.globalAlpha = tapeHover.amount;
-      ctx.fillStyle = '#0a100de8';
-      ctx.fillRect(x, y - 22, 169, 31);
-      ctx.strokeStyle = eventColor(events[tapeHover.index]);
-      ctx.strokeRect(x, y - 22, 169, 31);
-      text(ctx, label, x + 10, y, 17, PAPER);
-      ctx.restore();
-    }
   } else {
     ctx.save();
     ctx.beginPath();
