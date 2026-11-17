@@ -278,9 +278,9 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     }
     const tracking = !state.powered || prefersReducedMotion.matches ? 1 : Math.min(1, (now - tuneStarted) / 260);
     glass.setTracking(tracking, tuneDirection);
-    // Refresh the animated background at 30 fps while keeping the scene and inputs responsive.
+    // Match the reference motion at the display refresh rate while the monitor is visible.
     const cubeFrame = stageVisible && state.powered && !prefersReducedMotion.matches && !document.hidden
-      ? Math.floor(now / (1000 / 30)) : 0;
+      ? Math.floor(now / (1000 / 60)) : 0;
     if (lastCubeFrame !== cubeFrame || !lastScreen || lastScreen.arcade !== display.arcade || lastScreen.events !== display.events || lastScreen.position !== position ||
       lastScreen.selected !== state.selected || lastScreen.page !== state.page ||
       lastScreen.pagePosition !== pagePosition || lastScreen.detailMix !== detailMix ||
@@ -348,6 +348,7 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     screen.material = screenOff;
     disposeModel();
     screenOn.dispose();
+    cubes.dispose();
     texture.dispose();
     pusher.dispose();
     robotShadow.geometry.dispose();
