@@ -4,7 +4,7 @@ export function scrollPose(progress: number, aspect: number, focus: number, grab
   const travel = MathUtils.smoothstep(progress, 0, 1);
   const cabinetDistance = Math.max(7.25, 9.65 / aspect);
   const entranceDistance = cabinetDistance + 2.35;
-  const focusDistance = Math.max(6.65, 7.02 / aspect);
+  const focusDistance = Math.max(6.52, 6.86 / aspect);
   // Leave space for the cabinet corners as it tilts during a grab.
   const grabClearance = Math.hypot(grabX * Math.max(.85, 1.8 / aspect), grabY * .72);
   const restDistance = MathUtils.lerp(entranceDistance, cabinetDistance, travel);

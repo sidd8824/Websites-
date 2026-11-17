@@ -8,7 +8,7 @@ export default function EventsSection() {
 
   return (
     <section id="events" aria-labelledby="events-heading"
-      className="relative mx-auto w-full max-w-7xl scroll-mt-20 px-4 pb-20 pt-1 sm:px-6 sm:pb-28">
+      className="relative mx-auto w-full max-w-7xl scroll-mt-16 px-2 pb-20 pt-1 sm:px-6 sm:pb-28">
       <h2 id="events-heading" className="sr-only">Upcoming events</h2>
       {events.length > 0 ? <CrtEventBrowser events={events} /> : (
         <p className="text-center font-mono text-sm text-[#bfcabb]">No upcoming events are scheduled.</p>
