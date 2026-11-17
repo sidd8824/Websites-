@@ -6,7 +6,7 @@ A collection of websites designed and built by **Siddharth**. Each site lives in
 
 | Site | Description | Stack | Folder | Live |
 |------|-------------|-------|--------|------|
-| B/Stack | Website for our college tech club | React, Vite | [`sidd_demo24_one_mascot_v21`](./sidd_demo24_one_mascot_v21) | [_add link_](https://websites-smoky-two.vercel.app/) |
+| B/Stack | Website for our college tech club | React, Vite | [`sidd_demo24_one_mascot_v21`](./sidd_demo24_one_mascot_v21) | (https://websites-smoky-two.vercel.app/) |
 
 _More sites will be added here as I build them._
 
