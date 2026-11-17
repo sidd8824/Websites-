@@ -6,6 +6,7 @@ import {
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { tapeAt, tapePose } from './tapeMotion';
 import { drawEventScreen, SCREEN_HEIGHT, SCREEN_WIDTH, type ScreenState } from './eventScreen';
+import { createCubeBackground } from './cubeBackground';
 import { createGlassMaterial, glassUV } from './crtGlass';
 import { createPushRobot } from './pushRobot';
 import { scrollPose } from './scrollPose';
@@ -166,6 +167,8 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     button: stage.querySelector<HTMLButtonElement>(`[data-crt-key="${key}"]`),
     x,
   }));
+  const cubes = createCubeBackground();
+  let lastCubeFrame = -1;
   let lastScreen: ScreenState | undefined;
   let position = getState().position;
   let tapePointer: { x: number; y: number } | null = null;
@@ -275,14 +278,18 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     }
     const tracking = !state.powered || prefersReducedMotion.matches ? 1 : Math.min(1, (now - tuneStarted) / 260);
     glass.setTracking(tracking, tuneDirection);
-    if (!lastScreen || lastScreen.arcade !== display.arcade || lastScreen.events !== display.events || lastScreen.position !== position ||
+    // Refresh the animated background at 30 fps while keeping the scene and inputs responsive.
+    const cubeFrame = stageVisible && state.powered && !prefersReducedMotion.matches && !document.hidden
+      ? Math.floor(now / (1000 / 30)) : 0;
+    if (lastCubeFrame !== cubeFrame || !lastScreen || lastScreen.arcade !== display.arcade || lastScreen.events !== display.events || lastScreen.position !== position ||
       lastScreen.selected !== state.selected || lastScreen.page !== state.page ||
       lastScreen.pagePosition !== pagePosition || lastScreen.detailMix !== detailMix ||
       lastScreen.motion !== motion || lastScreen.showEvents !== display.showEvents ||
       lastScreen.powered !== state.powered || lastScreen.tapeHover?.index !== hover?.index ||
       lastScreen.tapeHover?.lean !== hover?.lean ||
       lastScreen.tapeHover?.amount !== hover?.amount) {
-      drawEventScreen(context, display, photos);
+      drawEventScreen(context, display, photos, ctx => cubes.draw(ctx, now / 1000, prefersReducedMotion.matches));
+      lastCubeFrame = cubeFrame;
       texture.needsUpdate = true;
       lastScreen = display;
     }
@@ -358,6 +365,14 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
   };
   return {
     invalidate,
+    screenPointer(uv: { x: number; y: number } | null) {
+      cubes.point(uv);
+      invalidate();
+    },
+    screenRipple(uv: { x: number; y: number }) {
+      cubes.ripple(uv);
+      invalidate();
+    },
     hoverTape(uv: { x: number; y: number } | null) {
       tapePointer = uv ? { x: uv.x * SCREEN_WIDTH, y: uv.y * SCREEN_HEIGHT } : null;
       invalidate();

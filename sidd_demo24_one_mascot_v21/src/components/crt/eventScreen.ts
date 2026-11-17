@@ -318,13 +318,15 @@ function drawTubeBackground(ctx: CanvasRenderingContext2D) {
   ctx.drawImage(tubeBackground, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 }
 
-export function drawEventScreen(ctx: CanvasRenderingContext2D, state: ScreenState, photo: HTMLImageElement | null = null) {
+export function drawEventScreen(ctx: CanvasRenderingContext2D, state: ScreenState, photo: HTMLImageElement | null = null,
+  background?: (ctx: CanvasRenderingContext2D) => void) {
   const { events, selected, position, page, pagePosition, showEvents, tapeHover } = state;
   const event = events[selected];
   const mix = state.detailMix ?? (page === null ? 0 : 1);
   const motion = state.motion ?? 0;
   const color = eventColor(event);
   drawTubeBackground(ctx);
+  background?.(ctx);
   if (state.arcade) { drawArcadeScreen(ctx, state.arcade); return; }
   ctx.save();
   ctx.beginPath();

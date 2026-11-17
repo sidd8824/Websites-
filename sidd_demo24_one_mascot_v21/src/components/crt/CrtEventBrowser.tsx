@@ -303,7 +303,9 @@ export default function CrtEventBrowser({ events }: Props) {
       <div ref={stage} tabIndex={0} aria-label="Interactive monitor. Arrow keys to navigate. Games available on screen." className="crt-events__stage" data-lenis-prevent-horizontal data-lenis-prevent={browsing && view === 'events' ? true : undefined} data-display={load}
         onPointerDown={e => {
           if (!e.isPrimary || e.button !== 0) return;
-          const mode = monitor.current?.hit(e.clientX, e.clientY)?.kind;
+          const hit = monitor.current?.hit(e.clientX, e.clientY);
+          const mode = hit?.kind;
+          if (powered && hit?.kind === 'screen') monitor.current?.screenRipple(hit.uv);
           pointerOnMonitor.current = mode !== undefined;
           if (mode !== 'cabinet' && mode !== 'screen') return;
           window.clearTimeout(settleTimer.current);
@@ -317,10 +319,11 @@ export default function CrtEventBrowser({ events }: Props) {
           e.currentTarget.dataset.grabbing = 'true';
         }}
         onPointerMove={e => {
+          const hit = monitor.current?.hit(e.clientX, e.clientY);
+          monitor.current?.screenPointer(hit?.kind === 'screen' ? hit.uv : null);
           const start = gesture.current;
           if (!start || start.id !== e.pointerId) {
             if (e.pointerType === 'mouse' && view === 'events' && browsing && !detail && powered) {
-              const hit = monitor.current?.hit(e.clientX, e.clientY);
               monitor.current?.hoverTape(hit?.kind === 'screen' ? hit.uv : null);
             }
             return;
@@ -337,7 +340,7 @@ export default function CrtEventBrowser({ events }: Props) {
             }
           }
         }}
-        onPointerLeave={() => monitor.current?.hoverTape(null)}
+        onPointerLeave={() => { monitor.current?.hoverTape(null); monitor.current?.screenPointer(null); }}
         onPointerUp={e => {
           const start = gesture.current;
           if (start?.id !== e.pointerId) return;
