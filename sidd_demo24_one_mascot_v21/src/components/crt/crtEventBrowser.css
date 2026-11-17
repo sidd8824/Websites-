@@ -7,8 +7,10 @@
 .crt-events__stage {
   position: relative;
   isolation: isolate;
-  height: clamp(24rem, 75vw, 65rem);
-  max-height: min(95svh, calc(100svh - 64px));
+  --crt-view-height: min(clamp(24rem, 75vw, 65rem), 95svh, calc(100svh - 64px));
+  box-sizing: content-box;
+  height: var(--crt-view-height);
+  padding-block: calc(var(--crt-view-height) * .235);
   touch-action: pan-y pinch-zoom;
   overscroll-behavior-x: contain;
   cursor: grab;

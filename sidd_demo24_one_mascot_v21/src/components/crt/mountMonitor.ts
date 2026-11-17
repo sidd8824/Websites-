@@ -129,7 +129,10 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
   robotShadow.rotation.x = -Math.PI / 2;
   scene.add(shadow, robotShadow);
 
-  const camera = new PerspectiveCamera(38, 1, .1, 50);
+  const framingFov = 38;
+  const camera = new PerspectiveCamera(framingFov, 1, .1, 50);
+  let viewHeight = 0;
+  let verticalGutter = 0;
   const art = document.createElement('canvas');
   art.width = SCREEN_WIDTH;
   art.height = SCREEN_HEIGHT;
@@ -176,8 +179,8 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
     if (prefersReducedMotion.matches) return 1;
     const rect = stage.getBoundingClientRect();
     const entry = innerHeight * .98;
-    const center = Math.max(0, (innerHeight - rect.height) / 2);
-    return Math.max(0, Math.min(1, (entry - rect.top) / (entry - center)));
+    const center = Math.max(0, (innerHeight - viewHeight) / 2);
+    return Math.max(0, Math.min(1, (entry - rect.top - verticalGutter) / (entry - center)));
   };
   const approach = (from: number, to: number) =>
     prefersReducedMotion.matches || Math.abs(from - to) < .002 ? to : from + (to - from) * .24;
@@ -190,7 +193,7 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
 
   function render(now: number) {
     frame = 0;
-    const ratio = stage.clientWidth / stage.clientHeight;
+    const ratio = stage.clientWidth / viewHeight;
     if (!Number.isFinite(ratio) || ratio <= 0) return;
     const state = getState();
     const entranceTarget = state.showEvents ? 1 : progress();
@@ -260,8 +263,15 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
   }
   const observer = new ResizeObserver(() => {
     if (!stage.clientHeight || !stage.clientWidth) return;
+    const style = getComputedStyle(stage);
+    verticalGutter = parseFloat(style.paddingTop);
+    viewHeight = stage.clientHeight - verticalGutter - parseFloat(style.paddingBottom);
+    if (viewHeight <= 0) return;
     renderer.setSize(stage.clientWidth, stage.clientHeight, false);
     camera.aspect = stage.clientWidth / stage.clientHeight;
+    // Widen the view cone to render the extra canvas without changing pixels per world unit.
+    const halfAngle = framingFov * Math.PI / 360;
+    camera.fov = Math.atan(Math.tan(halfAngle) * stage.clientHeight / viewHeight) * 360 / Math.PI;
     camera.updateProjectionMatrix();
     invalidate();
   });
@@ -296,7 +306,7 @@ export async function mountMonitor(stage: HTMLDivElement, getState: () => Screen
   return {
     invalidate,
     moveGrab(dx: number, dy: number) {
-      const scale = Math.max(100, stage.clientHeight * .34);
+      const scale = Math.max(100, viewHeight * .34);
       grab.targetX = Math.max(-1, Math.min(1, dx / scale));
       grab.targetY = Math.max(-1, Math.min(1, dy / scale));
       invalidate();

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ClubEvent } from '../../data/club';
 import type { mountMonitor } from './mountMonitor';
 import type { ScreenState } from './eventScreen';
+import { docTop, scrollToY } from '../../utils/scroll';
 import './crtEventBrowser.css';
 
 interface Props {
@@ -23,7 +24,25 @@ export default function CrtEventBrowser({ events }: Props) {
   const state = useRef<ScreenState>({ events, selected: index, page, position: index, pagePosition: page ?? 0, showEvents: browsing, powered });
   const gesture = useRef<{ x: number; y: number; id: number; mode: 'screen' | 'cabinet' } | null>(null);
   const suppressClick = useRef(0);
+  const alignUntil = useRef(0);
   const dispatch = useRef<(step: number) => void>(() => {});
+
+  function beginBrowsing() {
+    const element = stage.current;
+    if (element) {
+      const center = docTop(element) + element.clientHeight / 2;
+      const target = Math.max(0, center - (window.innerHeight + 64) / 2);
+      if (Math.abs(target - window.scrollY) > 32) {
+        alignUntil.current = performance.now() + 850;
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          window.scrollTo({ top: target, behavior: 'instant' });
+        } else {
+          scrollToY(target, .65);
+        }
+      }
+    }
+    setBrowsing(true);
+  }
 
   function resetMonitor() {
     setPage(null);
@@ -35,7 +54,7 @@ export default function CrtEventBrowser({ events }: Props) {
 
   function advance(step: number) {
     if (!powered) return;
-    if (!browsing) { setBrowsing(true); return; }
+    if (!browsing) { beginBrowsing(); return; }
     if (page === null) setSelected(Math.max(0, Math.min(events.length - 1, index + step)));
     else setPage(Math.max(0, Math.min(1, page + step)));
   }
@@ -105,7 +124,7 @@ export default function CrtEventBrowser({ events }: Props) {
       const y = window.scrollY;
       const movingDown = y > lastScroll;
       lastScroll = y;
-      if (!movingDown || (!state.current.showEvents && state.current.powered)) return;
+      if (!movingDown || performance.now() < alignUntil.current || (!state.current.showEvents && state.current.powered)) return;
       total = 0;
       resetMonitor();
     };
@@ -123,7 +142,7 @@ export default function CrtEventBrowser({ events }: Props) {
   if (!event) return null;
   const toggle = () => {
     if (!powered) return;
-    if (!browsing) setBrowsing(true);
+    if (!browsing) beginBrowsing();
     else setPage(current => current === null ? 0 : null);
   };
   const detail = page !== null;
@@ -187,7 +206,7 @@ export default function CrtEventBrowser({ events }: Props) {
           if (hit.kind === 'select') { toggle(); return; }
           if (hit.kind !== 'screen') return;
           const { x, y } = hit.uv;
-          if (!browsing) { setBrowsing(true); return; }
+          if (!browsing) { beginBrowsing(); return; }
           if (detail) {
             if (y < .20 && x < .35) toggle();
             if (y > .80 && x > .74) advance(x < .86 ? -1 : 1);
