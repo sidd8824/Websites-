@@ -47,9 +47,6 @@ export default function Navbar({ activeSection, onNavigate }: NavbarProps) {
                 B<span className={open ? 'text-[#7C5CF0]' : 'text-[#67E8F9]'}>/</span>Stack
               </span>
             </div>
-            <span className={`hidden lg:inline-block font-mono text-[10px] tracking-widest uppercase px-1.5 py-0.5 rounded border transition-colors duration-300 ${open ? 'text-[#0B0A16]/60 border-[#0B0A16]/25' : 'text-[#A7A3C7] border-[#A7A3C7]/30'}`}>
-              Bosscoder Tech
-            </span>
           </button>
           <button onClick={() => setMenuOpen((v) => !v)} aria-expanded={open} aria-label={open ? 'Close menu' : 'Open menu'} data-magnetic="true"
             className={`inline-flex items-center gap-2 pl-4 pr-3 py-1.5 sm:py-2 rounded-full border font-mono text-[11px] sm:text-xs font-bold uppercase tracking-[0.16em] cursor-pointer transition-colors duration-300 ${
