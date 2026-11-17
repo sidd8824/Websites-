@@ -191,7 +191,7 @@ export default function AboutSection() {
         </div>
 
         {/* Four Staggered Counters set at different heights */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mt-20 pt-8 border-t border-white/10 relative">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mt-20 pt-8 relative">
           {/* Counter 1: Members */}
           <div className="glass glow-violet p-4 sm:p-5 rounded-2xl transform -rotate-2 hover:rotate-0 self-start">
             <div className="font-display font-black text-3xl sm:text-5xl text-[#A78BFA] [text-shadow:0_0_22px_rgba(139,92,246,0.65)]">
