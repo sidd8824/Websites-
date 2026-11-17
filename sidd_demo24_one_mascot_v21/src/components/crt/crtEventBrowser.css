@@ -1,0 +1,85 @@
+.crt-events {
+  width: min(100%, 79rem);
+  margin: 0 auto;
+  color: #eef2e7;
+}
+
+.crt-events__stage {
+  position: relative;
+  isolation: isolate;
+  --crt-view-height: min(clamp(24rem, 75vw, 65rem), 95svh, calc(100svh - 64px));
+  box-sizing: content-box;
+  height: var(--crt-view-height);
+  padding-block: calc(var(--crt-view-height) * .235);
+  touch-action: pan-y pinch-zoom;
+  overscroll-behavior-x: contain;
+  cursor: grab;
+}
+
+.crt-events__stage::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  content: '';
+  pointer-events: none;
+  background: radial-gradient(ellipse closest-side at 50% 48%, #4c64649c, #24383d66 66%, transparent);
+}
+
+.crt-events__stage[data-grabbing] { cursor: grabbing; }
+.crt-events__stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+.crt-events__fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: .75rem;
+  padding: 1.25rem;
+  text-align: center;
+  pointer-events: none;
+}
+.crt-events__fallback p { max-width: 34rem; margin: 0; }
+.crt-events__fallback-title { font: 700 clamp(1.3rem, 4vw, 2.5rem)/1.12 Georgia, serif; }
+.crt-events__signal { font: .8rem ui-monospace, monospace; color: #b0d7b9; }
+
+.crt-events__keys { display: none; }
+
+.crt-events__stage[data-display="ready"] .crt-events__keys {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  pointer-events: none;
+}
+
+.crt-events__stage[data-display="ready"] .crt-events__keys button {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  transform: translate(-50%, -50%);
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: transparent;
+  font-size: 0;
+}
+
+.crt-events__keys button:focus-visible { outline: 2px solid #c3e5aa; outline-offset: 3px; }
+
+.crt-events__stage[data-display="fallback"] .crt-events__keys {
+  position: absolute;
+  inset: auto 0 .5rem;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: .45rem;
+}
+
+.crt-events__stage[data-display="fallback"] .crt-events__keys button {
+  min-height: 44px;
+  padding: .4rem .65rem;
+  border: 1px solid #c6d8ce65;
+  border-radius: .5rem;
+}
+.crt-events__stage[data-display="fallback"] .crt-events__keys button:disabled { opacity: .45; }

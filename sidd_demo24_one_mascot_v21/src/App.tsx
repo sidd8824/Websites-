@@ -27,7 +27,7 @@ function HomePage({ onNavigate }: { onNavigate: (sectionId: string) => void }) {
       <HeroSection onNavigate={onNavigate} />
       <AboutSection />
       <VerticalsSection onNavigate={onNavigate} />
-      <EventsSection onNavigate={onNavigate} />
+      <EventsSection />
       <JoinSection />
       <FooterSection />
     </main>
