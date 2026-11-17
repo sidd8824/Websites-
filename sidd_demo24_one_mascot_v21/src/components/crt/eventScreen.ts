@@ -276,7 +276,7 @@ let tubeBackground: HTMLCanvasElement | undefined;
 
 function drawTubeBackground(ctx: CanvasRenderingContext2D) {
   if (!tubeBackground) {
-    // Cache a neutral charcoal tube with fine RGB phosphors and horizontal scanlines.
+    // Cache the Midnight cyan tube behind the artwork; its background code visibility is zero.
     // It is painted before the sleeves and UI so their edges stay clean.
     tubeBackground = document.createElement('canvas');
     tubeBackground.width = SCREEN_WIDTH * 2;
@@ -284,9 +284,9 @@ function drawTubeBackground(ctx: CanvasRenderingContext2D) {
     const bg = tubeBackground.getContext('2d')!;
     bg.scale(2, 2);
     const glow = bg.createRadialGradient(512, 330, 30, 512, 384, 650);
-    glow.addColorStop(0, '#303132');
-    glow.addColorStop(.65, '#252628');
-    glow.addColorStop(1, '#101113');
+    glow.addColorStop(0, '#073139');
+    glow.addColorStop(.65, '#03171f');
+    glow.addColorStop(1, '#02090e');
     bg.fillStyle = glow;
     bg.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
     const phosphors = ['#ae635c16', '#72a98016', '#667eac16'];
@@ -295,10 +295,6 @@ function drawTubeBackground(ctx: CanvasRenderingContext2D) {
         bg.fillStyle = ink;
         bg.fillRect(x + channel * .5, 0, .5, SCREEN_HEIGHT);
       });
-    }
-    bg.fillStyle = '#00000022';
-    for (let y = 0; y < SCREEN_HEIGHT; y += 2) {
-      bg.fillRect(0, y, SCREEN_WIDTH, .5);
     }
     // A restrained, deterministic grain avoids a moving haze over the artwork.
     let seed = 14;

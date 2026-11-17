@@ -44,6 +44,8 @@ export function createGlassMaterial(map: Texture) {
           vec2 fringe = vec2(crtInterference * tracking * .0015, 0.);
           vec3 image = vec3(texture2D(map, curved + fringe).r, texture2D(map, curved).g,
             texture2D(map, curved - fringe).b);
+          // Match the selected preview: one dark scanline per three display pixels, strength 0.3.
+          float scanline = 1. - .3 * step(2. / 3., fract(gl_FragCoord.y / 3.));
           float border = max(abs(curved.x - .5), abs(curved.y - .5));
           // Keep the printed sleeves sharp; the phosphor texture is drawn behind them.
           float falloff = 1. - .38 * smoothstep(.43, .71, length(centered));
@@ -55,7 +57,7 @@ export function createGlassMaterial(map: Texture) {
           float rollingBand = exp(-pow((fract(curved.y - crtClock * .035) - .5) * 24., 2.)) * .003;
           float reflection = exp(-reflectionOffset * reflectionOffset) * .006;
           float edge = 1. - smoothstep(.478, .515, border);
-          diffuseColor.rgb *= (image * falloff + reflection + glassSweep + edgeGrain + rollingBand
+          diffuseColor.rgb *= (image * scanline * falloff + reflection + glassSweep + edgeGrain + rollingBand
             + tracking * crtInterference * .008) * edge + .001;
         #endif
       `);

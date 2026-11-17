@@ -14,13 +14,13 @@ export function settleTape(value: number, origin: number, count: number) {
 
 export function tapePose(offset: number, hover = 0) {
   const distance = Math.abs(offset);
-  const emphasis = Math.max(0, 1 - distance * 1.18);
+  const emphasis = Math.exp(-distance * distance * 4);
   return {
-    x: 512 + Math.sin(offset * .48) * 610,
-    y: 340 + (1 - Math.cos(offset * .48)) * 230 - hover * 12,
-    rotation: offset * .22 * (1 - hover * .12),
+    x: 512 + offset * 300,
+    y: 350 + (1 - Math.cos(offset * .48)) * 150 - hover * 8,
+    rotation: offset * .16 * (1 - hover * .12),
     widthScale: Math.cos(Math.min(1.1, distance * .24)),
-    scale: 1.10 - Math.min(.25, distance * .09) + hover * .025,
+    scale: .84 + emphasis * .10 + hover * .018,
     alpha: Math.min(1, .58 + .42 * emphasis + .10 * hover),
   };
 }
