@@ -355,7 +355,7 @@ function init(container: HTMLElement, api: any, onFocusChange?: (focused: boolea
 
     // ---------- interaction state ----------
     let hov=null,sel=null,vel=reduce?0:.12,rotY=.6,rotX=0,drag=false,sx=0,sy=0,lx=0,ly0=0,px=0,py=0,push=0;
-    let bx=0,by=2.2,bz=18,ly=.3,narrow=false,cz=18,cy=2.2,cly=.3,cox=0,vis=true,raf=0,dead=false,timer=0,last=performance.now(),t=0;
+    let bx=0,by=2.2,bz=18,ly=.3,narrow=false,cz=18,cy=2.2,cly=.3,vis=true,raf=0,dead=false,timer=0,last=performance.now(),t=0;
     const ray=new T.Raycaster(),mv=new T.Vector2(),idx=(id)=>V.findIndex((x)=>x.id===id);
     const cleanup=[];
     const on=(tg,n,f,o)=>{tg.addEventListener(n,f,o);cleanup.push(()=>tg.removeEventListener(n,f,o))};
@@ -384,15 +384,13 @@ function init(container: HTMLElement, api: any, onFocusChange?: (focused: boolea
     on(window,'keydown',(e)=>{if(e.key==='Escape')closeSel()});
     function size(){const w=stage.clientWidth||600,h=stage.clientHeight||600;ren.setSize(w,h,false);cam.aspect=w/h;
      narrow=w/h<.9;bx=0;by=narrow?3:2.2;bz=narrow?28:18;ly=narrow?.6:.3;cam.updateProjectionMatrix()}
-    function fittedFocusFrame(){
+    function fittedFocusDistance(){
      const bounds=new T.Box3().setFromObject(stack);bounds.expandByObject(ped);
-     const dims=bounds.getSize(new T.Vector3()),center=bounds.getCenter(new T.Vector3());
-     const tanV=Math.tan(T.MathUtils.degToRad(cam.fov/2)),tanH=tanV*cam.aspect;
-     const vertical=(dims.y*.5)/Math.max(tanV,.001);
-     const horizontal=(dims.x*.5)/Math.max(tanH,.001);
-     // Fit the complete tower with a small safety margin, without adding
-     // unnecessary depth padding that makes the model look tiny.
-     return {distance:Math.max(vertical,horizontal)/.94,centerY:center.y};
+     const dims=bounds.getSize(new T.Vector3());
+     const tanV=Math.tan(T.MathUtils.degToRad(38/2));
+     // Include depth and the fixed look-at offset so the near side cannot clip.
+     const halfHeight=Math.max(Math.abs(bounds.max.y-ly),Math.abs(bounds.min.y-ly));
+     return Math.max(halfHeight/tanV,(dims.x*.5)/(tanV*cam.aspect))+dims.z*.5+1;
     }
     const ro=new ResizeObserver(size);ro.observe(stage);size();cz=bz;cy=by;cly=ly;cam.position.set(bx,by,bz);
     const io=new IntersectionObserver((en)=>{vis=en[0].isIntersecting});io.observe(stage);
@@ -404,14 +402,13 @@ function init(container: HTMLElement, api: any, onFocusChange?: (focused: boolea
      if(!drag){rotY+=vel*dt+(reduce?0:(sel?.05:.12)*dt);vel*=.94;rotX*=.92}
      stack.rotation.y=rotY;stack.rotation.x=rotX;
      const k=reduce?1:.07,sb=sel?bands[idx(sel)]:null;
-     const focusFrame=sb?fittedFocusFrame():null;
-     const focusTargetY=sb?focusFrame.centerY:ly;
-     const zoomTarget=sb?Math.max(narrow?10:8.5,focusFrame.distance*1.015):bz;
-     const targetFov=sb?55:38;
-     cam.fov+=(targetFov-cam.fov)*k;cam.updateProjectionMatrix();
-     cz+=(zoomTarget-cz)*k;cy+=((sb?focusFrame.centerY+1.1:by)-cy)*k;
-     cly+=(focusTargetY-cly)*k;
-     cox+=((sb&&!narrow?2.4:0)-cox)*k;cam.position.set(cox+(reduce?0:px*.9),cy-(reduce?0:py*.5),cz);cam.lookAt(cox,cly,0);
+     const zoomTarget=sb?Math.max(bz*.94,fittedFocusDistance()):bz;
+     // Keep the original optical center and field of view throughout selection.
+     // Time-based easing gives the same gentle zoom at different frame rates.
+     const cameraEase=reduce?1:1-Math.exp(-dt*4);
+     cz+=(zoomTarget-cz)*cameraEase;cy+=(by-cy)*cameraEase;
+     cly+=(ly-cly)*cameraEase;
+     cam.position.set(reduce?0:px*.9,cy-(reduce?0:py*.5),cz);cam.lookAt(0,cly,0);
      const foc=sel||hov,hi=bands.findIndex((x)=>x.v.id===foc),gap=sel?.7:.32;
      bands.forEach((b,bi)=>{const o=foc===b.v.id;
       b.lift+=((o?.12:hi<0?0:bi<hi?gap:-gap)-b.lift)*.12;b.glow+=((o?(sel?1.9:1.6):foc?.6:1)-b.glow)*.12;
