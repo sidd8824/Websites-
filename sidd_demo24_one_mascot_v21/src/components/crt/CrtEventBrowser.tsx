@@ -216,10 +216,25 @@ export default function CrtEventBrowser({ events }: Props) {
     let stepped = -Infinity;
     let wheelOrigin = 0;
     let edgeTravel = 0;
+    let returnUntil = 0;
     const onWheel = (e: WheelEvent) => {
-      if (e.ctrlKey || e.metaKey || !state.current.powered || state.current.arcade) return;
+      if (e.ctrlKey || e.metaKey || !state.current.powered) return;
       const now = performance.now();
       const sideways = e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY);
+      if (!sideways && e.deltaY > 0 && (state.current.arcade || now < returnUntil)) {
+        if (e.cancelable) e.preventDefault();
+        e.stopPropagation();
+        if (now >= returnUntil) {
+          // Let the monitor zoom out before wheel momentum carries the page past it.
+          returnUntil = now + 850;
+          alignUntil.current = returnUntil;
+          total = 0;
+          edgeTravel = 0;
+          resetMonitor();
+        }
+        return;
+      }
+      if (state.current.arcade) return;
       if (!sideways && !state.current.showEvents) return;
       const delta = e.shiftKey ? e.deltaX || e.deltaY : sideways ? e.deltaX : e.deltaY;
       if (!delta) return;
@@ -263,7 +278,6 @@ export default function CrtEventBrowser({ events }: Props) {
     };
     let lastScroll = window.scrollY;
     const onScroll = () => {
-      if (state.current.arcade) return;
       const y = window.scrollY;
       const movingDown = y > lastScroll;
       lastScroll = y;
