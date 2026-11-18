@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>B/Stack</title>
+  <rect width="64" height="64" rx="13" fill="#0B0A16"/>
+  <path fill="#E6EDF7" fill-rule="evenodd" d="M11 13h15c8 0 13 4 13 10 0 4-2 7-6 9 5 1 7 4 7 9 0 7-5 11-14 11H11V13Zm8 8v8h7c4 0 6-1 6-4s-2-4-6-4h-7Zm0 15v9h8c4 0 6-1 6-4s-2-5-6-5h-8Z"/>
+  <path fill="#67E8F9" d="M51 12h8L45 52h-8z"/>
+</svg>
