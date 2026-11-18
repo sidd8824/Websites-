@@ -1,0 +1,79 @@
+.win95-menu-layer { position: fixed; inset: 0; z-index: 39; }
+.win95-menu-backdrop { position: absolute; inset: 0; background: #0005; }
+.win95-menu {
+  position: absolute;
+  top: 84px;
+  right: max(32px, calc((100vw - 1280px) / 2 + 32px));
+  display: flex;
+  width: 354px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100svh - 104px);
+  padding: 3px;
+  border: 1px solid #000;
+  background: #c0c0c0;
+  color: #000;
+  box-shadow: inset 2px 2px #fff, inset -2px -2px #404040, 4px 4px #0005;
+  font-family: Tahoma, 'MS Sans Serif', Arial, sans-serif;
+  font-size: 19px;
+  line-height: 1.2;
+  animation: win95-menu-open 120ms steps(3, end);
+}
+.win95-menu-brand {
+  flex: 0 0 36px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 8px 0;
+  background: #808080;
+  color: #c0c0c0;
+  overflow: hidden;
+}
+.win95-menu-brand > span { display: flex; gap: 5px; writing-mode: vertical-rl; transform: rotate(180deg); font-size: 27px; white-space: nowrap; }
+.win95-menu-brand strong { font-weight: 800; }
+.win95-menu-brand span span { color: #fff; }
+.win95-menu-content { flex: 1; min-width: 0; padding: 1px 0 1px 2px; overflow-y: auto; }
+.win95-menu-item {
+  width: 100%;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 6px 13px 6px 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.win95-menu-item.is-highlighted { background: #000080; color: #fff; }
+.win95-menu-item:focus-visible { outline: 1px dotted currentColor; outline-offset: -4px; }
+.win95-menu-icon { flex: 0 0 36px; font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif; font-size: 30px; line-height: 1; text-align: center; }
+.win95-menu-label { flex: 1; }
+.win95-menu-initial { text-decoration: underline; text-underline-offset: 3px; }
+.win95-menu-arrow { font-size: 19px; }
+.win95-menu-separator { height: 2px; margin: 4px 3px; background: #808080; box-shadow: 0 1px #fff; }
+.win95-menu-close { min-height: 58px; }
+.win95-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  min-height: 36px;
+  border: 1px solid #161616;
+  border-radius: 0;
+  background: #c0c0c0;
+  color: #000;
+  box-shadow: inset 2px 2px #fff, inset -2px -2px #808080;
+  font: 700 15px Tahoma, 'MS Sans Serif', Arial, sans-serif;
+  cursor: pointer;
+}
+.win95-trigger[aria-expanded='true'], .win95-trigger:active { box-shadow: inset 2px 2px #808080, inset -1px -1px #fff; }
+.win95-trigger:focus-visible { outline: 1px dotted #000; outline-offset: -5px; }
+.win95-trigger-icon { font-size: 20px; line-height: 1; }
+@keyframes win95-menu-open { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 639px) { .win95-menu { top: 72px; right: 16px; max-height: calc(100svh - 88px); } }
+@media (max-height: 600px) { .win95-menu-item { min-height: 44px; } .win95-menu-icon { font-size: 26px; } }
+@media (prefers-reduced-motion: reduce) { .win95-menu { animation: none; } }
